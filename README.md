@@ -185,3 +185,9 @@ feat: create basic login form
 chore: initialize next.js project
 ```
 
+### Step
+``` 
+git add .
+git commit -m "test commit"
+git push
+```
