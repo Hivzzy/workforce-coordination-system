@@ -120,4 +120,68 @@ This project is being developed incrementally with a focus on real-world usabili
 
 ## 👤 Author
 
-* Your Name
+* Hivzzy
+
+## 🧾 Commit Guidelines
+
+To maintain a clean and readable commit history, use the following commit message convention:
+
+### Format
+
+```
+<type>: <short description>
+```
+
+### Types
+
+* `feat` → new feature
+* `fix` → bug fix
+* `chore` → setup / config / dependency
+* `refactor` → code improvement without changing functionality
+* `docs` → documentation changes
+* `style` → formatting (no logic changes)
+
+---
+
+### Examples
+
+```
+feat: add login page UI
+fix: resolve form validation issue
+chore: setup project structure
+refactor: simplify user service logic
+docs: update README with setup instructions
+```
+
+---
+
+### Rules
+
+* Use lowercase for type
+* Keep description short and clear
+* Do not use vague messages like:
+
+  * "update"
+  * "fix bug"
+  * "progress"
+* One commit = one purpose
+
+---
+
+### Bad Example ❌
+
+```
+update code
+fix something
+final
+```
+
+---
+
+### Good Example ✅
+
+```
+feat: create basic login form
+chore: initialize next.js project
+```
+
