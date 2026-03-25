@@ -1,36 +1,167 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Workforce Coordination System
 
-## Getting Started
+A web-based application for managing staff placement and task coordination during events (e.g., weddings, exhibitions).
 
-First, run the development server:
+---
+
+## 🚀 Overview
+
+This system is designed to help event organizers:
+
+* Manage staff (HRMS)
+* Create area layouts (denah)
+* Assign staff to specific areas
+* Send tasks to staff in real-time
+* Monitor operational activities during events
+
+---
+
+## 🧠 Core Modules
+
+* **Authentication** (Admin & Staff)
+* **HRMS (Staff Management)**
+* **Area / Layout Builder**
+* **Assignment System (Staff → Area)**
+* **Task Management**
+* **Realtime Notification**
+
+---
+
+## 🏗️ Tech Stack
+
+* **Frontend**: Next.js (App Router) + Tailwind CSS
+* **Backend**: Next.js API Routes
+* **Database**: PostgreSQL + Prisma
+* **State Management**: Zustand
+* **Realtime**: Socket.IO
+* **Canvas / Layout**: Konva.js
+
+---
+
+## 📂 Project Structure
+
+```bash
+src/
+ ├── app/
+ ├── components/
+ ├── features/
+ ├── hooks/
+ ├── lib/
+ ├── services/
+ ├── types/
+```
+
+---
+
+## ⚙️ Getting Started
+
+### 1. Clone Repository
+
+```bash
+git clone https://github.com/your-username/workforce-coordination-system.git
+cd workforce-coordination-system
+```
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+### 3. Run Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+App will run on:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 🧾 Commit Guidelines
 
-To learn more about Next.js, take a look at the following resources:
+### Format
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+<type>: <short description>
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Types
 
-## Deploy on Vercel
+* `feat` → new feature
+* `fix` → bug fix
+* `chore` → setup / config
+* `refactor` → code improvement
+* `docs` → documentation
+* `style` → formatting only
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Example
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+feat: add login page UI
+chore: setup folder structure
+docs: update README
+```
+
+---
+
+## 📊 Current Progress
+
+* [x] Initialize Next.js project
+* [x] Setup base folder structure
+* [x] Setup README & commit convention
+* [x] Authentication (basic login flow)
+* [x] Global state management (Zustand)
+* [x] Persist login (localStorage)
+* [x] Route protection (dashboard)
+
+### ✅ Auth Features Implemented
+
+* Login page (`/login`)
+* Dummy authentication service
+* Global auth state using Zustand
+* Persistent login (localStorage)
+* Protected dashboard route (`/dashboard`)
+* Redirect after login
+
+### 🚧 Next Phase
+
+* Logout functionality
+* Role-based access (admin vs staff)
+* Start HRMS module (staff management)
+
+
+---
+
+## 🎯 MVP Scope
+
+* Basic login system
+* Staff management (CRUD)
+* Simple area layout (rectangle-based)
+* Assign staff to area
+* Basic task assignment
+
+---
+
+## 🔮 Future Improvements
+
+* Mobile optimization (PWA)
+* Advanced layout editor (drag, resize, snap)
+* Analytics & reporting
+* Multi-event support
+
+---
+
+## 📌 Notes
+
+This project is built incrementally with a focus on real-world event operations and usability under time-sensitive conditions.
+
+---
+
+## 👤 Author
+
+* Hivzzy
