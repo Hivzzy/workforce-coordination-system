@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 
 export default function StaffPage() {
   const user = useAuthStore((state) => state.user);
+  const hasHydrated = useAuthStore((state) => state.hasHydrated);
   const { staffs, addStaff, removeStaff, updateStaff } = useStaffStore();
   const router = useRouter();
 
@@ -15,13 +16,16 @@ export default function StaffPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!hasHydrated) return;
+  
     if (!user) {
       router.push("/login");
     } else if (user.role !== "admin") {
       router.push("/dashboard");
     }
-  }, [user, router]);
+  }, [user, hasHydrated, router]);
 
+  if (!hasHydrated) return null;
   if (!user || user.role !== "admin") return null;
 
   const handleSave = () => {
