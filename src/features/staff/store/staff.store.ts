@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { Staff } from "../types/staff.types";
+import { persist } from "zustand/middleware";
 
 type StaffState = {
   staffs: Staff[];
@@ -7,7 +8,9 @@ type StaffState = {
   removeStaff: (id: string) => void;
 };
 
-export const useStaffStore = create<StaffState>((set) => ({
+export const useStaffStore = create<StaffState>()(
+ persist(    
+    (set) => ({
   staffs: [],
   addStaff: (staff) =>
     set((state) => ({
@@ -17,4 +20,8 @@ export const useStaffStore = create<StaffState>((set) => ({
     set((state) => ({
       staffs: state.staffs.filter((s) => s.id !== id),
     })),
-}));
+}),
+{
+    name: "staff-storage",
+}
+));
