@@ -7,11 +7,12 @@ import { useEffect, useState } from "react";
 
 export default function StaffPage() {
   const user = useAuthStore((state) => state.user);
-  const { staffs, addStaff, removeStaff } = useStaffStore();
+  const { staffs, addStaff, removeStaff, updateStaff } = useStaffStore();
   const router = useRouter();
 
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -23,14 +24,22 @@ export default function StaffPage() {
 
   if (!user || user.role !== "admin") return null;
 
-  const handleAdd = () => {
+  const handleSave = () => {
     if (!name || !role) return;
 
-    addStaff({
-      id: Date.now().toString(),
-      name,
-      role,
-    });
+    if (editingId) {
+      updateStaff({
+        id: editingId,
+        name,
+        role,
+      });
+    } else {
+      addStaff({
+        id: Date.now().toString(),
+        name,
+        role,
+      });
+    }
 
     setName("");
     setRole("");
@@ -58,8 +67,8 @@ export default function StaffPage() {
           <option value="security">Security</option>
         </select>
 
-        <button onClick={handleAdd} className="bg-black text-white px-4">
-          Add
+        <button onClick={handleSave} className="bg-black text-white px-4">
+          {editingId ? "Update" : "Add"}
         </button>
       </div>
 
@@ -71,7 +80,16 @@ export default function StaffPage() {
             <span>
               {staff.name} - {staff.role}
             </span>
-
+            <button
+              onClick={() => {
+                setEditingId(staff.id);
+                setName(staff.name);
+                setRole(staff.role);
+              }}
+              className="text-blue-500 mr-2"
+            >
+              Edit
+            </button>
             <button
               onClick={() => removeStaff(staff.id)}
               className="text-red-500"
