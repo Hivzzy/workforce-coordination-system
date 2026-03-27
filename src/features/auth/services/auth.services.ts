@@ -1,20 +1,23 @@
 import { User } from "../types/auth.types";
 
-export const login = async (email: string, password: string): Promise<User | null> => {
-    // dummy logic 
-    if(email == "admin@gmail.com" && password === "admin") {
-        return {
-            id: "1",
-            email,
-            role: "admin"
-        }
-    }
-    if(email == "staff@gmail.com" && password === "staff") {
-        return {
-            id: "2",
-            email,
-            role: "staff"
-        }
-    }
-    return null;
+export const login = async (
+  email: string,
+  password: string,
+): Promise<User | null> => {
+  // dummy logic
+  if (email == "admin@gmail.com" && password === "admin") {
+    return {
+      id: "1",
+      email,
+      role: "admin",
+    };
+  }
+  if (email == "staff@gmail.com" && password === "staff") {
+    return {
+      id: "2",
+      email,
+      role: "staff",
+    };
+  }
+  return null;
 };
