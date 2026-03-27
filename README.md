@@ -112,27 +112,50 @@ docs: update README
 ## 📊 Current Progress
 
 - [x] Initialize Next.js project
-- [x] Setup base folder structure
-- [x] Setup README & commit convention
-- [x] Authentication (basic login flow)
-- [x] Global state management (Zustand)
-- [x] Persist login (localStorage)
-- [x] Route protection (dashboard)
+- [x] Setup project structure (feature-based)
+- [x] Authentication system (login, logout, persist, route protection)
+- [x] Role-based access (admin vs staff)
+- [x] HRMS - Staff Management (basic CRUD with Zustand)
+- [x] Persist staff data (localStorage)
+- [x] Protect staff route (admin only)
+- [x] Update/Edit staff functionality
 
-### ✅ Auth Features Implemented
+---
 
-- Login page (`/login`)
-- Dummy authentication service
-- Global auth state using Zustand
-- Persistent login (localStorage)
-- Protected dashboard route (`/dashboard`)
-- Redirect after login
+## ✅ HRMS Features Implemented
 
-### 🚧 Next Phase
+- Add staff
+- Delete staff
+- Update/Edit staff
+- Persistent data (localStorage)
+- Role-based route protection
+- Basic validation (name & role required)
 
-- Logout functionality
-- Role-based access (admin vs staff)
-- Start HRMS module (staff management)
+---
+
+## 🧠 Current System Capabilities
+
+- Admin can manage staff
+- Staff data persists after refresh
+- Unauthorized users cannot access HRMS
+- Basic state-driven architecture using Zustand
+
+---
+
+## 🚧 Next Phase
+
+- Area / Layout (Denah) system
+- Assign staff to specific areas
+- Visual layout builder (canvas-based)
+- Task assignment per area
+
+---
+
+## 🧱 Architecture Notes
+
+- Feature-based structure (`features/auth`, `features/staff`)
+- Global state via Zustand (modular per feature)
+- Separation between UI, state, and logic
 
 ---
 
