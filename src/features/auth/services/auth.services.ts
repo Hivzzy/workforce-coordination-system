@@ -9,5 +9,12 @@ export const login = async (email: string, password: string): Promise<User | nul
             role: "admin"
         }
     }
+    if(email == "staff@gmail.com" && password === "staff") {
+        return {
+            id: "2",
+            email,
+            role: "staff"
+        }
+    }
     return null;
 };
