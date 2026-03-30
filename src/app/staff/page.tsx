@@ -17,7 +17,7 @@ export default function StaffPage() {
 
   useEffect(() => {
     if (!hasHydrated) return;
-  
+
     if (!user) {
       router.push("/login");
     } else if (user.role !== "admin") {
