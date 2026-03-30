@@ -7,6 +7,7 @@ type StaffState = {
   addStaff: (staff: Staff) => void;
   removeStaff: (id: string) => void;
   updateStaff: (staff: Staff) => void;
+  assignStaffToArea: (staffId: string, areaId: string) => void;
 };
 
 export const useStaffStore = create<StaffState>()(
@@ -24,7 +25,13 @@ export const useStaffStore = create<StaffState>()(
       updateStaff: (updatedStaff: Staff) =>
         set((state) => ({
           staffs: state.staffs.map((s) =>
-            s.id === updatedStaff.id ? updatedStaff : s,
+            s.id === updatedStaff.id ? { ...s, ...updatedStaff } : s,
+          ),
+        })),
+      assignStaffToArea: (staffId: string, areaId: string) =>
+        set((state) => ({
+          staffs: state.staffs.map((s) =>
+            s.id === staffId ? { ...s, assignedAreaId: areaId } : s,
           ),
         })),
     }),

@@ -4,12 +4,15 @@ import { useStaffStore } from "@/features/staff/store/staff.store";
 import { useAuthStore } from "@/features/auth/store/auth.store";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useAreaStore } from "@/features/area/store/area.store";
 
 export default function StaffPage() {
   const user = useAuthStore((state) => state.user);
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
   const { staffs, addStaff, removeStaff, updateStaff } = useStaffStore();
   const router = useRouter();
+  const { areas } = useAreaStore();
+  const { assignStaffToArea } = useStaffStore();
 
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
@@ -32,11 +35,14 @@ export default function StaffPage() {
     if (!name || !role) return;
 
     if (editingId) {
+      const existingStaff = staffs.find((s) => s.id === editingId);
       updateStaff({
         id: editingId,
         name,
         role,
+        assignedAreaId: existingStaff?.assignedAreaId,
       });
+      setEditingId(null);
     } else {
       addStaff({
         id: Date.now().toString(),
@@ -83,7 +89,24 @@ export default function StaffPage() {
           <li key={staff.id} className="flex justify-between border p-2 mb-2">
             <span>
               {staff.name} - {staff.role}
+              {staff.assignedAreaId && (
+                <span>
+                  ({areas.find((a) => a.id === staff.assignedAreaId)?.name})
+                </span>
+              )}
             </span>
+            <select
+              value={staff.assignedAreaId}
+              onChange={(e) => assignStaffToArea(staff.id, e.target.value)}
+              className="border ml-2"
+            >
+              <option value="">Unassigned</option>
+              {areas.map((area) => (
+                <option key={area.id} value={area.id}>
+                  {area.name}
+                </option>
+              ))}
+            </select>
             <button
               onClick={() => {
                 setEditingId(staff.id);
