@@ -1,11 +1,13 @@
 "use client";
 
 import { useAreaStore } from "@/features/area/store/area.store";
+import { useStaffStore } from "@/features/staff/store/staff.store";
 import { useState } from "react";
 
 export default function AreaPage() {
   const { areas, addArea, removeArea } = useAreaStore();
   const [name, setName] = useState("");
+  const { staffs } = useStaffStore();
 
   const handleAdd = () => {
     if (!name) return;
@@ -16,6 +18,10 @@ export default function AreaPage() {
     });
 
     setName("");
+  };
+
+  const getStaffByArea = (areaId: string) => {
+    return staffs.filter((s) => s.assignedAreaId === areaId);
   };
 
   return (
@@ -35,17 +41,36 @@ export default function AreaPage() {
         {areas.length === 0 && <p>No area yet</p>}
 
         <ul>
-          {areas.map((area) => (
-            <li key={area.id} className="flex justify-between border p-2  mb-2">
-              <span>{area.name}</span>
-              <button
-                onClick={() => removeArea(area.id)}
-                className="text-red-500"
-              >
-                Delete
-              </button>
-            </li>
-          ))}
+          {areas.map((area) => {
+            const assignedStaff = getStaffByArea(area.id);
+            return (
+              <li key={area.id} className="border p-2  mb-2">
+                <div className="flex justify-between">
+                  <h2 className="font-semibold">{area.name}</h2>
+                  <button
+                    onClick={() => removeArea(area.id)}
+                    className="text-red-500"
+                  >
+                    Delete
+                  </button>
+                </div>
+
+                {/* Staff Inside Area */}
+
+                <div className="mt-2 ml-4">
+                  {assignedStaff.length === 0 ? (
+                    <p className="text-sm text-gray-400">No staff assigned</p>
+                  ) : (
+                    assignedStaff.map((staff) => (
+                      <p key={staff.id} className="text-sm">
+                        - {staff.name} ({staff.role})
+                      </p>
+                    ))
+                  )}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       </div>
     </div>

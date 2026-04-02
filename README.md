@@ -111,41 +111,41 @@ docs: update README
 
 ## 📊 Current Progress
 
-* [x] Initialize Next.js project
-* [x] Feature-based architecture setup
-* [x] Authentication system (login, logout, persist, route protection)
-* [x] Role-based access (admin vs staff)
+- [x] Initialize Next.js project
+- [x] Feature-based architecture setup
+- [x] Authentication system (login, logout, persist, route protection)
+- [x] Role-based access (admin vs staff)
 
 ### HRMS (Staff Management)
 
-* [x] Add staff
-* [x] Delete staff
-* [x] Update/Edit staff
-* [x] Persist data (localStorage)
-* [x] Admin-only access
+- [x] Add staff
+- [x] Delete staff
+- [x] Update/Edit staff
+- [x] Persist data (localStorage)
+- [x] Admin-only access
 
 ### Area Management
 
-* [x] Add area
-* [x] Delete area
-* [x] Persist data
+- [x] Add area
+- [x] Delete area
+- [x] Persist data
 
 ### Assignment System
 
-* [x] Assign staff to area
-* [x] Staff stores `assignedAreaId` (single source of truth)
-* [x] Assignment persists after refresh
-* [x] Assignment preserved on staff update
+- [x] Assign staff to area
+- [x] Staff stores `assignedAreaId` (single source of truth)
+- [x] Assignment persists after refresh
+- [x] Assignment preserved on staff update
 
 ---
 
 ## 🧠 Current System Capabilities
 
-* Admin can manage staff and areas
-* Staff can be assigned to specific areas
-* Data persistence using Zustand
-* Role-based route protection
-* Relational structure: **Staff → Area**
+- Admin can manage staff and areas
+- Staff can be assigned to specific areas
+- Data persistence using Zustand
+- Role-based route protection
+- Relational structure: **Staff → Area**
 
 ---
 
@@ -153,15 +153,15 @@ docs: update README
 
 ### Staff
 
-* id
-* name
-* role
-* assignedAreaId (optional)
+- id
+- name
+- role
+- assignedAreaId (optional)
 
 ### Area
 
-* id
-* name
+- id
+- name
 
 > Relationship: One staff belongs to one area (optional)
 
@@ -169,20 +169,19 @@ docs: update README
 
 ## 🚧 Next Phase
 
-* View: Area → list assigned staff
-* Basic visual layout (grid-based denah)
-* Mapping area into visual representation
-* Preparation for canvas (Konva.js)
+- View: Area → list assigned staff
+- Basic visual layout (grid-based denah)
+- Mapping area into visual representation
+- Preparation for canvas (Konva.js)
 
 ---
 
 ## 🧠 Architecture Notes
 
-* Feature-based modular structure
-* Zustand for global state (per feature)
-* Separation of concerns (UI / state / logic)
-* Avoid data duplication (single source of truth)
-
+- Feature-based modular structure
+- Zustand for global state (per feature)
+- Separation of concerns (UI / state / logic)
+- Avoid data duplication (single source of truth)
 
 ## 🎯 MVP Scope
 
