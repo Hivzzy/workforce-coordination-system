@@ -1,40 +1,27 @@
 # Workforce Coordination System
 
-A web-based application for managing staff placement and task coordination during events (e.g., weddings, exhibitions).
+A premium web-based application for managing staff placement and task coordination during events (e.g., weddings, exhibitions).
 
 ---
 
 ## 🚀 Overview
 
 This system is designed to help event organizers:
-
 - Manage staff (HRMS)
-- Create area layouts (denah)
+- Create area layouts (zones)
 - Assign staff to specific areas
 - Send tasks to staff in real-time
-- Monitor operational activities during events
-
----
-
-## 🧠 Core Modules
-
-- **Authentication** (Admin & Staff)
-- **HRMS (Staff Management)**
-- **Area / Layout Builder**
-- **Assignment System (Staff → Area)**
-- **Task Management**
-- **Realtime Notification**
+- Monitor operational activities during events (Emergency, Help, Refill triggers)
 
 ---
 
 ## 🏗️ Tech Stack
 
-- **Frontend**: Next.js (App Router) + Tailwind CSS
-- **Backend**: Next.js API Routes
-- **Database**: PostgreSQL + Prisma
-- **State Management**: Zustand
-- **Realtime**: Socket.IO
-- **Canvas / Layout**: Konva.js
+- **Core**: HTML, Javascript, Typescript
+- **Framework**: Next.js 16 (App Router)
+- **UI Design System**: Material UI (MUI v6/v9) + Poppins Font
+- **Styling**: Vanilla CSS (Tailwind CSS included for utility defaults)
+- **State Management**: Zustand (Persisted client-side)
 
 ---
 
@@ -42,172 +29,67 @@ This system is designed to help event organizers:
 
 ```bash
 src/
- ├── app/
- ├── components/
- ├── features/
- ├── hooks/
- ├── lib/
- ├── services/
- ├── types/
+ ├── app/                      # Next.js pages & layouts
+ │    ├── area/                # Area builder page
+ │    ├── dashboard/           # Admin monitoring dashboard
+ │    ├── design-system/       # Component preview & guidelines
+ │    ├── login/               # Premium authentication page
+ │    └── staff/               # Staff management page (HRMS)
+ ├── components/               # Packaged Global Components
+ │    ├── AdminShell/          # Unified responsive sidebar & Route Guard
+ │    ├── AppButton/           # Condition-based button presets
+ │    ├── AppTypography/       # Poppins typography presets
+ │    ├── DataTable/           # Custom responsive tables
+ │    ├── Modal/               # Unified overlays (Form, Confirm, Alert)
+ │    ├── Pagination/          # Styled rounded pagination
+ │    ├── EmergencyButton/     # Operational simulators
+ │    ├── HelpButton/          
+ │    └── RefillButton/        
+ ├── features/                 # Modular feature states & services (Zustand)
 ```
 
 ---
 
 ## ⚙️ Getting Started
 
-### 1. Clone Repository
-
-```bash
-git clone https://github.com/your-username/workforce-coordination-system.git
-cd workforce-coordination-system
-```
-
-### 2. Install Dependencies
-
+### 1. Install Dependencies
 ```bash
 npm install
 ```
 
-### 3. Run Development Server
-
+### 2. Run Development Server
 ```bash
 npm run dev
 ```
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-App will run on:
-
-```
-http://localhost:3000
-```
-
----
-
-## 🧾 Commit Guidelines
-
-### Format
-
-```
-<type>: <short description>
-```
-
-### Types
-
-- `feat` → new feature
-- `fix` → bug fix
-- `chore` → setup / config
-- `refactor` → code improvement
-- `docs` → documentation
-- `style` → formatting only
-
-### Example
-
-```
-feat: add login page UI
-chore: setup folder structure
-docs: update README
+### 3. Linting & Formatting
+```bash
+npm run lint      # Run ESLint validation
+npm run format    # Run Prettier code formatting
 ```
 
 ---
 
-## 📊 Current Progress
+## 📊 Completed Progress (Tugas Akhir Status)
 
-- [x] Initialize Next.js project
-- [x] Feature-based architecture setup
-- [x] Authentication system (login, logout, persist, route protection)
-- [x] Role-based access (admin vs staff)
+### 🎨 Design System & Fonts
+- [x] Integrate **Poppins** font family globally.
+- [x] Configure unified MUI custom theme with dark/light auto-switching.
+- [x] Establish reusable packaged components (`AppTypography`, `AppButton`, `Modal`, `DataTable`, `Pagination`).
 
-### HRMS (Staff Management)
+### 🔑 Authentication & Routing
+- [x] Refactor Login page with a premium centered card and glassmorphic UI.
+- [x] Add auto-redirects on root route `/` based on credentials.
+- [x] Implement `<AdminShell>` for responsive page navigation and automatic role guards.
 
-- [x] Add staff
-- [x] Delete staff
-- [x] Update/Edit staff
-- [x] Persist data (localStorage)
-- [x] Admin-only access
-
-### Area Management
-
-- [x] Add area
-- [x] Delete area
-- [x] Persist data
-
-### Assignment System
-
-- [x] Assign staff to area
-- [x] Staff stores `assignedAreaId` (single source of truth)
-- [x] Assignment persists after refresh
-- [x] Assignment preserved on staff update
-
----
-
-## 🧠 Current System Capabilities
-
-- Admin can manage staff and areas
-- Staff can be assigned to specific areas
-- Data persistence using Zustand
-- Role-based route protection
-- Relational structure: **Staff → Area**
-
----
-
-## 🧱 Data Design (Important)
-
-### Staff
-
-- id
-- name
-- role
-- assignedAreaId (optional)
-
-### Area
-
-- id
-- name
-
-> Relationship: One staff belongs to one area (optional)
-
----
-
-## 🚧 Next Phase
-
-- View: Area → list assigned staff
-- Basic visual layout (grid-based denah)
-- Mapping area into visual representation
-- Preparation for canvas (Konva.js)
-
----
-
-## 🧠 Architecture Notes
-
-- Feature-based modular structure
-- Zustand for global state (per feature)
-- Separation of concerns (UI / state / logic)
-- Avoid data duplication (single source of truth)
-
-## 🎯 MVP Scope
-
-- Basic login system
-- Staff management (CRUD)
-- Simple area layout (rectangle-based)
-- Assign staff to area
-- Basic task assignment
-
----
-
-## 🔮 Future Improvements
-
-- Mobile optimization (PWA)
-- Advanced layout editor (drag, resize, snap)
-- Analytics & reporting
-- Multi-event support
-
----
-
-## 📌 Notes
-
-This project is built incrementally with a focus on real-world event operations and usability under time-sensitive conditions.
+### 👥 Staff & Area Management (Admin Panel)
+- [x] **Dashboard**: Stat summary counters, live log feeds, and operational simulation buttons.
+- [x] **Staff Management**: Render staff list inside a clean `DataTable`, edit/add staff via overlays, and assign staff to zones.
+- [x] **Area Management**: Card grid displaying event locations, assigned staff details, and inline quick-assign selectors.
+- [x] **Role Security**: Add validation checking administrative status before any store state mutations.
 
 ---
 
 ## 👤 Author
-
 - Hivzzy
