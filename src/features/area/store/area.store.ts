@@ -14,18 +14,35 @@ export const useAreaStore = create<AreaState>()(
     (set) => ({
       areas: [],
       addArea: (area) =>
-        set((state) => ({
-          areas: [
-            ...state.areas,
-            {
-              x: 10,
-              y: 10,
-              w: 160,
-              h: 120,
-              ...area,
-            },
-          ],
-        })),
+        set((state) => {
+          let defaultW = 160;
+          let defaultH = 120;
+
+          if (area.type === "building") {
+            defaultW = 200;
+            defaultH = 150;
+          } else if (area.type === "road") {
+            defaultW = 240;
+            defaultH = 60;
+          } else if (area.type === "parking") {
+            defaultW = 180;
+            defaultH = 120;
+          }
+
+          return {
+            areas: [
+              ...state.areas,
+              {
+                x: 10,
+                y: 10,
+                w: defaultW,
+                h: defaultH,
+                type: "zone",
+                ...area,
+              },
+            ],
+          };
+        }),
       removeArea: (id) =>
         set((state) => ({
           areas: state.areas.filter((a) => a.id !== id),
