@@ -3,4 +3,6 @@ export type Staff = {
   name: string;
   role: string;
   assignedAreaId?: string;
+  email?: string;
+  password?: string;
 };

@@ -12,11 +12,13 @@ import {
   InputAdornment,
   IconButton,
   Container,
+  Chip,
 } from "@mui/material";
 import EmailIcon from "@mui/icons-material/Email";
 import LockIcon from "@mui/icons-material/Lock";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import AppTypography from "@/components/AppTypography";
 import AppButton from "@/components/AppButton";
 import Modal from "@/components/Modal";
@@ -40,10 +42,14 @@ export default function LoginPage() {
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
   const setUser = useAuthStore((state) => state.setUser);
 
-  // If already logged in, redirect straight to dashboard
+  // If already logged in, redirect to appropriate page
   useEffect(() => {
-    if (hasHydrated && user && user.role === "admin") {
-      router.push("/dashboard");
+    if (hasHydrated && user) {
+      if (user.role === "admin") {
+        router.push("/dashboard");
+      } else {
+        router.push("/portal");
+      }
     }
   }, [user, hasHydrated, router]);
 
@@ -60,7 +66,7 @@ export default function LoginPage() {
         setAlertConfig({
           title: "Login Berhasil",
           severity: "success",
-          message: `Selamat datang kembali, ${loggedInUser.email}! Anda akan dialihkan ke dashboard utama.`,
+          message: `Selamat datang kembali, ${loggedInUser.name}! Anda akan dialihkan ke ${loggedInUser.role === "admin" ? "dashboard utama" : "portal staff"}.`,
         });
         setAlertOpen(true);
       } else {
@@ -86,7 +92,12 @@ export default function LoginPage() {
   const handleAlertClose = () => {
     setAlertOpen(false);
     if (alertConfig.severity === "success") {
-      router.push("/dashboard");
+      const currentUser = useAuthStore.getState().user;
+      if (currentUser?.role === "admin") {
+        router.push("/dashboard");
+      } else {
+        router.push("/portal");
+      }
     }
   };
 
@@ -100,15 +111,62 @@ export default function LoginPage() {
         background: "linear-gradient(135deg, #1e1b4b 0%, #311042 50%, #030712 100%)",
         py: 4,
         px: 2,
+        position: "relative",
+        overflow: "hidden",
       }}
     >
-      <Container maxWidth="sm">
+      {/* ─── Floating Animated Orbs ─── */}
+      <Box
+        className="login-orb-1"
+        sx={{
+          position: "absolute",
+          width: 340,
+          height: 340,
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, transparent 70%)",
+          top: "10%",
+          left: "5%",
+          filter: "blur(60px)",
+          pointerEvents: "none",
+        }}
+      />
+      <Box
+        className="login-orb-2"
+        sx={{
+          position: "absolute",
+          width: 280,
+          height: 280,
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(6, 182, 212, 0.2) 0%, transparent 70%)",
+          bottom: "15%",
+          right: "10%",
+          filter: "blur(50px)",
+          pointerEvents: "none",
+        }}
+      />
+      <Box
+        className="login-orb-3"
+        sx={{
+          position: "absolute",
+          width: 200,
+          height: 200,
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(244, 63, 94, 0.15) 0%, transparent 70%)",
+          top: "55%",
+          left: "60%",
+          filter: "blur(40px)",
+          pointerEvents: "none",
+        }}
+      />
+
+      <Container maxWidth="sm" sx={{ position: "relative", zIndex: 1 }}>
         <Card
+          className="animate-card-entrance"
           sx={{
-            backdropFilter: "blur(12px)",
+            backdropFilter: "blur(16px)",
             backgroundColor: "rgba(24, 24, 27, 0.75)",
             border: "1px solid rgba(255, 255, 255, 0.08)",
-            boxShadow: "0 24px 64px rgba(0, 0, 0, 0.6)",
+            boxShadow: "0 24px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(99, 102, 241, 0.05)",
             borderRadius: 4,
             overflow: "visible",
           }}
@@ -236,6 +294,60 @@ export default function LoginPage() {
                   backgroundImage: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
                 }}
               />
+            </Box>
+
+            {/* ─── Demo Credential Hints ─── */}
+            <Box
+              sx={{
+                mt: 4,
+                p: 2,
+                borderRadius: 2.5,
+                backgroundColor: "rgba(99, 102, 241, 0.06)",
+                border: "1px solid rgba(99, 102, 241, 0.12)",
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.8, mb: 1.5 }}>
+                <InfoOutlinedIcon sx={{ fontSize: 16, color: "primary.main" }} />
+                <AppTypography preset="helperText" sx={{ color: "primary.main", fontWeight: 700, fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                  Demo Credentials
+                </AppTypography>
+              </Box>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                  <Chip
+                    label="Admin"
+                    size="small"
+                    sx={{
+                      bgcolor: "primary.main",
+                      color: "#fff",
+                      fontWeight: 700,
+                      fontSize: "0.65rem",
+                      height: 22,
+                      fontFamily: "var(--font-poppins)",
+                    }}
+                  />
+                  <AppTypography preset="helperText" sx={{ color: "grey.400", fontSize: "0.75rem", fontFamily: "monospace" }}>
+                    admin@coordination.com (atau @gmail.com) / admin
+                  </AppTypography>
+                </Box>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                  <Chip
+                    label="Staff"
+                    size="small"
+                    sx={{
+                      bgcolor: "secondary.main",
+                      color: "#fff",
+                      fontWeight: 700,
+                      fontSize: "0.65rem",
+                      height: 22,
+                      fontFamily: "var(--font-poppins)",
+                    }}
+                  />
+                  <AppTypography preset="helperText" sx={{ color: "grey.400", fontSize: "0.75rem", fontFamily: "monospace" }}>
+                    staff@coordination.com (atau @gmail.com) / staff
+                  </AppTypography>
+                </Box>
+              </Box>
             </Box>
           </CardContent>
         </Card>

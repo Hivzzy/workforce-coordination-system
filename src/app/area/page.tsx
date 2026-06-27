@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, useRef } from "react";
 import { useAreaStore } from "@/features/area/store/area.store";
 import { useStaffStore } from "@/features/staff/store/staff.store";
-import { useAuthStore } from "@/features/auth/store/auth.store";
+import { useAdminGuard } from "@/hooks/useAdminGuard";
+import { verifyAdminAuth } from "@/utils/auth.utils";
 import {
   Grid,
   Card,
@@ -43,6 +43,9 @@ import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import EditIcon from "@mui/icons-material/Edit";
 import CheckIcon from "@mui/icons-material/Check";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import AppTypography from "@/components/AppTypography";
 import AppButton from "@/components/AppButton";
 import Modal from "@/components/Modal";
@@ -91,19 +94,31 @@ type EditorMode = "select" | "draw-polygon" | "draw-road";
 
 // ─── Page Component ────────────────────────────────────────
 export default function AreaPage() {
-  const user = useAuthStore((s) => s.user);
-  const hasHydrated = useAuthStore((s) => s.hasHydrated);
+  const { isReady } = useAdminGuard();
   const {
-    areas, addArea, removeArea, updateArea,
+    areas, fetchAreas, addArea, removeArea, updateArea,
     updatePoint, translateShape,
   } = useAreaStore();
-  const { staffs, assignStaffToArea } = useStaffStore();
-  const router = useRouter();
+  const { staffs, fetchStaffs, assignStaffToArea } = useStaffStore();
+
+  useEffect(() => {
+    fetchAreas();
+    fetchStaffs();
+  }, [fetchAreas, fetchStaffs]);
 
   // ── Tab & Selection ──
   const [activeTab, setActiveTab] = useState(1);
   const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null);
   const [zoom, setZoom] = useState(0.5);
+  const [isMinimized, setIsMinimized] = useState(true);
+  const hasDraggedRef = useRef(false);
+
+  // ── Reset minimize state when selected area changes ──
+  useEffect(() => {
+    if (selectedAreaId) {
+      setIsMinimized(true);
+    }
+  }, [selectedAreaId]);
 
   // ── Drawing modes ──
   const [editorMode, setEditorMode] = useState<EditorMode>("select");
@@ -114,6 +129,7 @@ export default function AreaPage() {
   const [areaTypeInput, setAreaTypeInput] = useState<AreaType>("zone");
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [resetModalOpen, setResetModalOpen] = useState(false);
   const [targetArea, setTargetArea] = useState<Area | null>(null);
 
   // ── Rect drag ──
@@ -142,19 +158,19 @@ export default function AreaPage() {
     mouseX: number; mouseY: number; origX: number; origY: number;
   } | null>(null);
 
-  // ── Route protection ──
-  useEffect(() => {
-    if (!hasHydrated) return;
-    if (!user) router.push("/login");
-    else if (user.role !== "admin") router.push("/dashboard");
-  }, [user, hasHydrated, router]);
-
-  // ── Escape key to cancel drawing ──
+  // ── Keyboard shortcuts & Drawing cancels ──
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && editorMode !== "select") {
-        setEditorMode("select");
-        setDrawingPoints([]);
+      if (editorMode !== "select") {
+        if (e.key === "Escape") {
+          setEditorMode("select");
+          setDrawingPoints([]);
+        }
+        // Undo: Ctrl + Z or Cmd + Z
+        if (e.key === "z" && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          setDrawingPoints((prev) => prev.slice(0, -1));
+        }
       }
     };
     document.addEventListener("keydown", onKey);
@@ -165,6 +181,8 @@ export default function AreaPage() {
   useEffect(() => {
     if (!activeDragId) return;
     const move = (e: MouseEvent) => {
+      hasDraggedRef.current = true;
+      setSelectedAreaId(activeDragId);
       const dx = ((e.clientX - dragStart.mouseX) / zoom / CANVAS_W) * 100;
       const dy = ((e.clientY - dragStart.mouseY) / zoom / CANVAS_H) * 100;
       const maxX = 100 - (dragStart.w / CANVAS_W) * 100;
@@ -185,6 +203,8 @@ export default function AreaPage() {
   useEffect(() => {
     if (!activeResizeId) return;
     const move = (e: MouseEvent) => {
+      hasDraggedRef.current = true;
+      setSelectedAreaId(activeResizeId);
       let nw = resizeStart.initialW + (e.clientX - resizeStart.mouseX) / zoom;
       let nh = resizeStart.initialH + (e.clientY - resizeStart.mouseY) / zoom;
       nw = Math.round(Math.max(30, nw) / 10) * 10;
@@ -201,6 +221,8 @@ export default function AreaPage() {
   useEffect(() => {
     if (!activeShapeDragId) return;
     const move = (e: MouseEvent) => {
+      hasDraggedRef.current = true;
+      setSelectedAreaId(activeShapeDragId);
       const dx = (e.clientX - shapeDragStart.mouseX) / zoom;
       const dy = (e.clientY - shapeDragStart.mouseY) / zoom;
       translateShape(activeShapeDragId, shapeDragStart.field, dx, dy, shapeDragStart.origPoints);
@@ -230,13 +252,7 @@ export default function AreaPage() {
     return () => { document.removeEventListener("mousemove", move); document.removeEventListener("mouseup", up); };
   }, [activePointDrag, zoom, updatePoint]);
 
-  if (!hasHydrated || !user || user.role !== "admin") return null;
-
-  // ── Auth guard ──
-  const verifyAdminAuth = () => {
-    const u = useAuthStore.getState().user;
-    if (!u || u.role !== "admin") throw new Error("Unauthorized action");
-  };
+  if (!isReady) return null;
 
   // ── Determine whether area uses point-based rendering ──
   const isPolygonArea = (a: Area) => !!(a.points && a.points.length >= 3);
@@ -289,8 +305,7 @@ export default function AreaPage() {
   };
 
   const handleFinishDrawing = () => {
-    const u = useAuthStore.getState().user;
-    if (!u || u.role !== "admin") throw new Error("Unauthorized action");
+    verifyAdminAuth();
     const pts = drawingPoints;
     const newId = Date.now().toString();
 
@@ -358,6 +373,24 @@ export default function AreaPage() {
     if (selectedAreaId === targetArea.id) setSelectedAreaId(null);
   };
 
+  const handleResetMap = async () => {
+    verifyAdminAuth();
+    try {
+      const res = await fetch("/api/areas/reset", { method: "POST" });
+      if (res.ok) {
+        useAreaStore.setState({ areas: [] });
+        // Update staff store state locally
+        useStaffStore.setState({
+          staffs: staffs.map((s) => ({ ...s, assignedAreaId: "" })),
+        });
+        setSelectedAreaId(null);
+      }
+    } catch (err) {
+      console.error("Failed to reset map in database:", err);
+    }
+    setResetModalOpen(false);
+  };
+
   // Rect drag start
   const handleRectDragStart = (e: React.MouseEvent, area: Area) => {
     if (e.button !== 0) return;
@@ -370,7 +403,7 @@ export default function AreaPage() {
       areaX: area.x ?? 10, areaY: area.y ?? 10,
       w: area.w || 160, h: area.h || 120,
     });
-    setSelectedAreaId(area.id);
+    hasDraggedRef.current = false;
   };
 
   // Shape (polygon/road) drag start
@@ -383,7 +416,7 @@ export default function AreaPage() {
     const pts = (area[field] || []) as Point[];
     setActiveShapeDragId(area.id);
     setShapeDragStart({ mouseX: e.clientX, mouseY: e.clientY, origPoints: pts, field });
-    setSelectedAreaId(area.id);
+    hasDraggedRef.current = false;
   };
 
   // Single point drag start
@@ -413,7 +446,7 @@ export default function AreaPage() {
       mouseX: e.clientX, mouseY: e.clientY,
       initialW: area.w || 160, initialH: area.h || 120,
     });
-    setSelectedAreaId(area.id);
+    hasDraggedRef.current = false;
   };
 
   // Canvas click (drawing mode)
@@ -458,7 +491,10 @@ export default function AreaPage() {
             Gambar denah lapangan, jalan, gedung, dan zona penugasan secara interaktif.
           </AppTypography>
         </Box>
-        <AppButton onClick={handleOpenAddForm} label="Buat Kustom" variant="outlined" color="primary" startIcon={<AddLocationAltIcon />} sx={{ py: 1.2, px: 2.5 }} />
+        <Stack direction="row" spacing={1.5} sx={{ width: { xs: "100%", sm: "auto" } }}>
+          <AppButton onClick={() => setResetModalOpen(true)} label="Reset Denah" variant="outlined" color="error" startIcon={<RestartAltIcon />} sx={{ py: 1.2, px: 2.5 }} />
+          <AppButton onClick={handleOpenAddForm} label="Buat Kustom" variant="outlined" color="primary" startIcon={<AddLocationAltIcon />} sx={{ py: 1.2, px: 2.5 }} />
+        </Stack>
       </Box>
 
       {/* ── Tabs + Toolbar ── */}
@@ -581,7 +617,7 @@ export default function AreaPage() {
       {/* ══════════════════════════════════════════════════ */}
       {activeTab === 1 && (
         <Grid container spacing={3}>
-          <Grid size={{ xs: 12, lg: selectedAreaId ? 8 : 12 }}>
+          <Grid size={{ xs: 12, lg: selectedAreaId ? (isMinimized ? 11 : 8) : 12 }}>
             {/* Drawing mode hint banner */}
             {editorMode !== "select" && (
               <Paper sx={{ mb: 2, px: 3, py: 1.5, display: "flex", alignItems: "center", justifyContent: "space-between", bgcolor: editorMode === "draw-polygon" ? "#ecfdf5" : "#ecfeff", borderRadius: 3 }}>
@@ -592,6 +628,16 @@ export default function AreaPage() {
                     : `Mode Gambar Jalan — Klik di kanvas untuk menambah titik jalan (${drawingPoints.length} titik)`}
                 </AppTypography>
                 <Stack direction="row" spacing={1}>
+                  {drawingPoints.length > 0 && (
+                    <AppButton
+                      onClick={() => setDrawingPoints((prev) => prev.slice(0, -1))}
+                      label="Undo (Ctrl+Z)"
+                      size="small"
+                      variant="outlined"
+                      color="secondary"
+                      sx={{ borderRadius: 1.5, py: 0.4, fontSize: "0.75rem" }}
+                    />
+                  )}
                   {drawingPoints.length >= 2 && (
                     <AppButton onClick={handleFinishDrawing} label="Selesai" size="small" variant="contained" color="primary" startIcon={<CheckIcon />} sx={{ borderRadius: 1.5, py: 0.4, fontSize: "0.75rem" }} />
                   )}
@@ -659,7 +705,7 @@ export default function AreaPage() {
                           stroke={sel ? "#6366f1" : "rgba(0,0,0,0.15)"} strokeWidth={sel ? 3 : 1}
                           style={{ cursor: editorMode !== "select" ? "crosshair" : "grab" }}
                           onMouseDown={editorMode === "select" ? (e) => handleShapeDragStart(e, area) : undefined}
-                          onClick={editorMode === "select" ? (e) => { e.stopPropagation(); setSelectedAreaId((prev) => prev === area.id ? null : area.id); } : undefined}
+                          onClick={editorMode === "select" ? (e) => { e.stopPropagation(); if (!hasDraggedRef.current) setSelectedAreaId((prev) => prev === area.id ? null : area.id); } : undefined}
                         />
                         <text x={c.x} y={c.y} textAnchor="middle" dominantBaseline="central"
                           fill={txtCol} fontSize="14" fontWeight="700" fontFamily="var(--font-poppins)"
@@ -690,7 +736,7 @@ export default function AreaPage() {
                           strokeWidth={rw + 20} strokeLinecap="round" strokeLinejoin="round"
                           style={{ cursor: editorMode !== "select" ? "crosshair" : "grab" }}
                           onMouseDown={editorMode === "select" ? (e) => handleShapeDragStart(e, area) : undefined}
-                          onClick={editorMode === "select" ? (e) => { e.stopPropagation(); setSelectedAreaId((prev) => prev === area.id ? null : area.id); } : undefined}
+                          onClick={editorMode === "select" ? (e) => { e.stopPropagation(); if (!hasDraggedRef.current) setSelectedAreaId((prev) => prev === area.id ? null : area.id); } : undefined}
                         />
                         {/* Road body */}
                         <polyline points={ptsStr} fill="none" stroke={col}
@@ -743,7 +789,7 @@ export default function AreaPage() {
                       transform={`translate(${xAbs},${yAbs}) rotate(${area.rotation || 0},${w / 2},${h / 2})`}
                       style={{ cursor: editorMode !== "select" ? "crosshair" : activeDragId === area.id ? "grabbing" : "grab" }}
                       onMouseDown={editorMode === "select" ? (e) => handleRectDragStart(e, area) : undefined}
-                      onClick={editorMode === "select" ? (e) => { e.stopPropagation(); setSelectedAreaId((prev) => prev === area.id ? null : area.id); } : undefined}
+                      onClick={editorMode === "select" ? (e) => { e.stopPropagation(); if (!hasDraggedRef.current) setSelectedAreaId((prev) => prev === area.id ? null : area.id); } : undefined}
                     >
                       <rect width={w} height={h} rx={rx} fill={col}
                         stroke={sel ? "#6366f1" : "transparent"} strokeWidth={sel ? 3 : 0}
@@ -824,148 +870,165 @@ export default function AreaPage() {
 
           {/* ═══ Inspector Sidebar ═══ */}
           {selectedAreaId && selectedArea && (
-            <Grid size={{ xs: 12, lg: 4 }}>
-              <Card sx={{ height: "100%" }}>
-                <CardContent sx={{ p: 3 }}>
-                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <SettingsIcon color="primary" />
-                      <AppTypography preset="sectionTitle" sx={{ fontWeight: 800 }}>Inspector</AppTypography>
-                    </Box>
-                    <IconButton size="small" onClick={() => setSelectedAreaId(null)}><CloseIcon /></IconButton>
-                  </Box>
-
-                  <Stack spacing={3}>
-                    {/* Name */}
-                    <TextField fullWidth size="small" label="Nama Elemen" value={selectedArea.name}
-                      onChange={(e) => { verifyAdminAuth(); updateArea(selectedArea.id, { name: e.target.value }); }}
-                      slotProps={{ input: { sx: { borderRadius: 2 } } }}
-                    />
-
-                    {/* Type chip */}
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <AppTypography preset="helperText" sx={{ fontWeight: "bold" }}>Tipe:</AppTypography>
-                      <Chip label={selectedArea.type || "zone"} size="small" color={selectedArea.type === "zone" ? "primary" : "secondary"}
-                        sx={{ textTransform: "uppercase", fontWeight: "bold", fontSize: "0.7rem" }}
-                      />
-                      <Chip label={isPolygonArea(selectedArea) ? "polygon" : isRoadArea(selectedArea) ? "path" : "rect"}
-                        size="small" variant="outlined" sx={{ fontSize: "0.65rem" }}
-                      />
+            <Grid size={{ xs: 12, lg: isMinimized ? 1 : 4 }}>
+              {isMinimized ? (
+                <Card sx={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", py: 3, gap: 2 }}>
+                  <IconButton color="primary" onClick={() => setIsMinimized(false)} title="Expand Inspector">
+                    <ChevronLeftIcon />
+                  </IconButton>
+                  <Divider sx={{ width: "80%", my: 1 }} />
+                  <SettingsIcon color="action" />
+                  <Box sx={{ flexGrow: 1 }} />
+                  <IconButton size="small" onClick={() => setSelectedAreaId(null)} title="Close">
+                    <CloseIcon />
+                  </IconButton>
+                </Card>
+              ) : (
+                <Card sx={{ height: "100%" }}>
+                  <CardContent sx={{ p: 3 }}>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <SettingsIcon color="primary" />
+                        <AppTypography preset="sectionTitle" sx={{ fontWeight: 800 }}>Inspector</AppTypography>
+                      </Box>
+                      <Box sx={{ display: "flex", gap: 0.5 }}>
+                        <IconButton size="small" onClick={() => setIsMinimized(true)} title="Minimize"><ChevronRightIcon /></IconButton>
+                        <IconButton size="small" onClick={() => setSelectedAreaId(null)} title="Close"><CloseIcon /></IconButton>
+                      </Box>
                     </Box>
 
-                    <Divider />
+                    <Stack spacing={3}>
+                      {/* Name */}
+                      <TextField fullWidth size="small" label="Nama Elemen" value={selectedArea.name}
+                        onChange={(e) => { verifyAdminAuth(); updateArea(selectedArea.id, { name: e.target.value }); }}
+                        slotProps={{ input: { sx: { borderRadius: 2 } } }}
+                      />
 
-                    {/* ── Rect dimension controls (only for rect-based shapes) ── */}
-                    {!isPolygonArea(selectedArea) && !isRoadArea(selectedArea) && (
-                      <>
-                        <Box>
-                          <AppTypography preset="helperText" sx={{ fontWeight: "bold", mb: 1 }}>Lebar: {selectedArea.w || 160}px</AppTypography>
-                          <Slider value={selectedArea.w || 160} min={30} max={800} step={10}
-                            onChange={(_, v) => { verifyAdminAuth(); updateArea(selectedArea.id, { w: v as number }); }} valueLabelDisplay="auto" />
-                        </Box>
-                        <Box>
-                          <AppTypography preset="helperText" sx={{ fontWeight: "bold", mb: 1 }}>Tinggi: {selectedArea.h || 120}px</AppTypography>
-                          <Slider value={selectedArea.h || 120} min={30} max={600} step={10}
-                            onChange={(_, v) => { verifyAdminAuth(); updateArea(selectedArea.id, { h: v as number }); }} valueLabelDisplay="auto" />
-                        </Box>
-                        <Box>
-                          <AppTypography preset="helperText" sx={{ fontWeight: "bold", mb: 1 }}>Rotasi: {selectedArea.rotation || 0}°</AppTypography>
-                          <Slider value={selectedArea.rotation || 0} min={0} max={360} step={5}
-                            onChange={(_, v) => { verifyAdminAuth(); updateArea(selectedArea.id, { rotation: v as number }); }} valueLabelDisplay="auto" />
-                        </Box>
-                      </>
-                    )}
+                      {/* Type chip */}
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <AppTypography preset="helperText" sx={{ fontWeight: "bold" }}>Tipe:</AppTypography>
+                        <Chip label={selectedArea.type || "zone"} size="small" color={selectedArea.type === "zone" ? "primary" : "secondary"}
+                          sx={{ textTransform: "uppercase", fontWeight: "bold", fontSize: "0.7rem" }}
+                        />
+                        <Chip label={isPolygonArea(selectedArea) ? "polygon" : isRoadArea(selectedArea) ? "path" : "rect"}
+                          size="small" variant="outlined" sx={{ fontSize: "0.65rem" }}
+                        />
+                      </Box>
 
-                    {/* ── Road-specific controls ── */}
-                    {isRoadArea(selectedArea) && (
-                      <>
-                        <Box>
-                          <AppTypography preset="helperText" sx={{ fontWeight: "bold", mb: 1 }}>Lebar Jalan: {selectedArea.roadWidth || 24}px</AppTypography>
-                          <Slider value={selectedArea.roadWidth || 24} min={8} max={80} step={2}
-                            onChange={(_, v) => { verifyAdminAuth(); updateArea(selectedArea.id, { roadWidth: v as number }); }} valueLabelDisplay="auto" />
-                        </Box>
+                      <Divider />
+
+                      {/* ── Rect dimension controls (only for rect-based shapes) ── */}
+                      {!isPolygonArea(selectedArea) && !isRoadArea(selectedArea) && (
+                        <>
+                          <Box>
+                            <AppTypography preset="helperText" sx={{ fontWeight: "bold", mb: 1 }}>Lebar: {selectedArea.w || 160}px</AppTypography>
+                            <Slider value={selectedArea.w || 160} min={30} max={800} step={10}
+                              onChange={(_, v) => { verifyAdminAuth(); updateArea(selectedArea.id, { w: v as number }); }} valueLabelDisplay="auto" />
+                          </Box>
+                          <Box>
+                            <AppTypography preset="helperText" sx={{ fontWeight: "bold", mb: 1 }}>Tinggi: {selectedArea.h || 120}px</AppTypography>
+                            <Slider value={selectedArea.h || 120} min={30} max={600} step={10}
+                              onChange={(_, v) => { verifyAdminAuth(); updateArea(selectedArea.id, { h: v as number }); }} valueLabelDisplay="auto" />
+                          </Box>
+                          <Box>
+                            <AppTypography preset="helperText" sx={{ fontWeight: "bold", mb: 1 }}>Rotasi: {selectedArea.rotation || 0}°</AppTypography>
+                            <Slider value={selectedArea.rotation || 0} min={0} max={360} step={5}
+                              onChange={(_, v) => { verifyAdminAuth(); updateArea(selectedArea.id, { rotation: v as number }); }} valueLabelDisplay="auto" />
+                          </Box>
+                        </>
+                      )}
+
+                      {/* ── Road-specific controls ── */}
+                      {isRoadArea(selectedArea) && (
+                        <>
+                          <Box>
+                            <AppTypography preset="helperText" sx={{ fontWeight: "bold", mb: 1 }}>Lebar Jalan: {selectedArea.roadWidth || 24}px</AppTypography>
+                            <Slider value={selectedArea.roadWidth || 24} min={8} max={80} step={2}
+                              onChange={(_, v) => { verifyAdminAuth(); updateArea(selectedArea.id, { roadWidth: v as number }); }} valueLabelDisplay="auto" />
+                          </Box>
+                          <AppTypography preset="helperText" sx={{ color: "text.secondary", fontStyle: "italic" }}>
+                            Titik jalan: {selectedArea.waypoints?.length || 0} waypoints — Geser titik biru di kanvas untuk mengubah bentuk jalan.
+                          </AppTypography>
+                        </>
+                      )}
+
+                      {/* ── Polygon info ── */}
+                      {isPolygonArea(selectedArea) && (
                         <AppTypography preset="helperText" sx={{ color: "text.secondary", fontStyle: "italic" }}>
-                          Titik jalan: {selectedArea.waypoints?.length || 0} waypoints — Geser titik biru di kanvas untuk mengubah bentuk jalan.
+                          Titik sudut: {selectedArea.points?.length || 0} vertices — Geser titik ungu di kanvas untuk mengubah bentuk area.
                         </AppTypography>
-                      </>
-                    )}
+                      )}
 
-                    {/* ── Polygon info ── */}
-                    {isPolygonArea(selectedArea) && (
-                      <AppTypography preset="helperText" sx={{ color: "text.secondary", fontStyle: "italic" }}>
-                        Titik sudut: {selectedArea.points?.length || 0} vertices — Geser titik ungu di kanvas untuk mengubah bentuk area.
-                      </AppTypography>
-                    )}
+                      {/* Layer */}
+                      <FormControl fullWidth size="small">
+                        <InputLabel id="inspector-layer-label">Tingkat Layer (Z-Index)</InputLabel>
+                        <Select labelId="inspector-layer-label" value={selectedArea.layer || 4} label="Tingkat Layer (Z-Index)"
+                          onChange={(e) => { verifyAdminAuth(); updateArea(selectedArea.id, { layer: Number(e.target.value) }); }} sx={{ borderRadius: 2 }}>
+                          <MenuItem value={1}>Layer 1: Lapangan (BG)</MenuItem>
+                          <MenuItem value={2}>Layer 2: Jalan / Parkir</MenuItem>
+                          <MenuItem value={3}>Layer 3: Gedung</MenuItem>
+                          <MenuItem value={4}>Layer 4: Stan / Zona</MenuItem>
+                        </Select>
+                      </FormControl>
 
-                    {/* Layer */}
-                    <FormControl fullWidth size="small">
-                      <InputLabel id="inspector-layer-label">Tingkat Layer (Z-Index)</InputLabel>
-                      <Select labelId="inspector-layer-label" value={selectedArea.layer || 4} label="Tingkat Layer (Z-Index)"
-                        onChange={(e) => { verifyAdminAuth(); updateArea(selectedArea.id, { layer: Number(e.target.value) }); }} sx={{ borderRadius: 2 }}>
-                        <MenuItem value={1}>Layer 1: Lapangan (BG)</MenuItem>
-                        <MenuItem value={2}>Layer 2: Jalan / Parkir</MenuItem>
-                        <MenuItem value={3}>Layer 3: Gedung</MenuItem>
-                        <MenuItem value={4}>Layer 4: Stan / Zona</MenuItem>
-                      </Select>
-                    </FormControl>
+                      <Divider />
 
-                    <Divider />
+                      {/* Color swatches */}
+                      <Box>
+                        <AppTypography preset="helperText" sx={{ fontWeight: "bold", mb: 1.5, display: "flex", alignItems: "center", gap: 0.8 }}>
+                          <ColorLensIcon sx={{ fontSize: 18 }} /> Pilih Warna
+                        </AppTypography>
+                        <Stack direction="row" spacing={1} useFlexGap sx={{ gap: 1, flexWrap: "wrap" }}>
+                          {COLOR_SWATCHES.map((c) => (
+                            <IconButton key={c} onClick={() => { verifyAdminAuth(); updateArea(selectedArea.id, { color: c }); }}
+                              sx={{ width: 32, height: 32, bgcolor: c, border: "2px solid", borderColor: selectedArea.color === c ? "primary.main" : "transparent", "&:hover": { bgcolor: c, opacity: 0.8 } }}
+                            />
+                          ))}
+                        </Stack>
+                      </Box>
 
-                    {/* Color swatches */}
-                    <Box>
-                      <AppTypography preset="helperText" sx={{ fontWeight: "bold", mb: 1.5, display: "flex", alignItems: "center", gap: 0.8 }}>
-                        <ColorLensIcon sx={{ fontSize: 18 }} /> Pilih Warna
-                      </AppTypography>
-                      <Stack direction="row" spacing={1} useFlexGap sx={{ gap: 1, flexWrap: "wrap" }}>
-                        {COLOR_SWATCHES.map((c) => (
-                          <IconButton key={c} onClick={() => { verifyAdminAuth(); updateArea(selectedArea.id, { color: c }); }}
-                            sx={{ width: 32, height: 32, bgcolor: c, border: "2px solid", borderColor: selectedArea.color === c ? "primary.main" : "transparent", "&:hover": { bgcolor: c, opacity: 0.8 } }}
-                          />
-                        ))}
-                      </Stack>
-                    </Box>
+                      {/* Staff assignment (zones only) */}
+                      {(selectedArea.type || "zone") === "zone" && (
+                        <>
+                          <Divider />
+                          <FormControl fullWidth size="small">
+                            <InputLabel id="inspector-assign">+ Tugaskan Staff</InputLabel>
+                            <Select labelId="inspector-assign" value="" label="+ Tugaskan Staff" onChange={(e) => handleStaffAssign(e.target.value, selectedArea.id)}>
+                              <MenuItem value="" disabled>Pilih Staff Luang</MenuItem>
+                              {unassignedStaffs.length === 0
+                                ? <MenuItem value="" disabled>Tidak ada staff luang</MenuItem>
+                                : unassignedStaffs.map((s) => <MenuItem key={s.id} value={s.id}>{s.name} ({s.role})</MenuItem>)}
+                            </Select>
+                          </FormControl>
+                          <Box>
+                            <AppTypography preset="helperText" sx={{ fontWeight: "bold", mb: 1, color: "text.secondary" }}>Personil ({selectedAreaStaffs.length})</AppTypography>
+                            {selectedAreaStaffs.length === 0 ? (
+                              <AppTypography preset="helperText" sx={{ fontStyle: "italic", color: "text.secondary" }}>Tidak ada staff bertugas.</AppTypography>
+                            ) : (
+                              <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+                                <List disablePadding>
+                                  {selectedAreaStaffs.map((s) => (
+                                    <ListItem key={s.id} sx={{ py: 0.8, px: 1.5, borderBottom: "1px solid", borderColor: "divider", "&:last-child": { borderBottom: "none" } }}>
+                                      <ListItemText
+                                        primary={<AppTypography preset="bodyText" sx={{ fontWeight: 600, fontSize: "0.85rem" }}>{s.name}</AppTypography>}
+                                        secondary={<AppTypography preset="helperText" sx={{ fontSize: "0.75rem", textTransform: "uppercase" }}>{s.role}</AppTypography>}
+                                      />
+                                      <AppButton variant="outlined" color="error" label="Lepas" onClick={() => handleStaffAssign(s.id, "")} sx={{ py: 0.3, px: 1, fontSize: "0.7rem", minWidth: 50 }} />
+                                    </ListItem>
+                                  ))}
+                                </List>
+                              </Paper>
+                            )}
+                          </Box>
+                        </>
+                      )}
 
-                    {/* Staff assignment (zones only) */}
-                    {(selectedArea.type || "zone") === "zone" && (
-                      <>
-                        <Divider />
-                        <FormControl fullWidth size="small">
-                          <InputLabel id="inspector-assign">+ Tugaskan Staff</InputLabel>
-                          <Select labelId="inspector-assign" value="" label="+ Tugaskan Staff" onChange={(e) => handleStaffAssign(e.target.value, selectedArea.id)}>
-                            <MenuItem value="" disabled>Pilih Staff Luang</MenuItem>
-                            {unassignedStaffs.length === 0
-                              ? <MenuItem value="" disabled>Tidak ada staff luang</MenuItem>
-                              : unassignedStaffs.map((s) => <MenuItem key={s.id} value={s.id}>{s.name} ({s.role})</MenuItem>)}
-                          </Select>
-                        </FormControl>
-                        <Box>
-                          <AppTypography preset="helperText" sx={{ fontWeight: "bold", mb: 1, color: "text.secondary" }}>Personil ({selectedAreaStaffs.length})</AppTypography>
-                          {selectedAreaStaffs.length === 0 ? (
-                            <AppTypography preset="helperText" sx={{ fontStyle: "italic", color: "text.secondary" }}>Tidak ada staff bertugas.</AppTypography>
-                          ) : (
-                            <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
-                              <List disablePadding>
-                                {selectedAreaStaffs.map((s) => (
-                                  <ListItem key={s.id} sx={{ py: 0.8, px: 1.5, borderBottom: "1px solid", borderColor: "divider", "&:last-child": { borderBottom: "none" } }}>
-                                    <ListItemText
-                                      primary={<AppTypography preset="bodyText" sx={{ fontWeight: 600, fontSize: "0.85rem" }}>{s.name}</AppTypography>}
-                                      secondary={<AppTypography preset="helperText" sx={{ fontSize: "0.75rem", textTransform: "uppercase" }}>{s.role}</AppTypography>}
-                                    />
-                                    <AppButton variant="outlined" color="error" label="Lepas" onClick={() => handleStaffAssign(s.id, "")} sx={{ py: 0.3, px: 1, fontSize: "0.7rem", minWidth: 50 }} />
-                                  </ListItem>
-                                ))}
-                              </List>
-                            </Paper>
-                          )}
-                        </Box>
-                      </>
-                    )}
-
-                    <Divider />
-                    <AppButton variant="contained" color="error" label="Hapus Elemen Ini" onClick={() => handleOpenDeleteConfirm(selectedArea)} sx={{ py: 1.2, width: "100%" }} />
-                  </Stack>
-                </CardContent>
-              </Card>
+                      <Divider />
+                      <AppButton variant="contained" color="error" label="Hapus Elemen Ini" onClick={() => handleOpenDeleteConfirm(selectedArea)} sx={{ py: 1.2, width: "100%" }} />
+                    </Stack>
+                  </CardContent>
+                </Card>
+              )}
             </Grid>
           )}
         </Grid>
@@ -1003,6 +1066,13 @@ export default function AreaPage() {
       >
         Apakah Anda yakin ingin menghapus elemen &quot;{targetArea?.name}&quot; ({targetArea?.type || "zone"})?
         Aksi ini tidak dapat dibatalkan.
+      </Modal>
+
+      <Modal open={resetModalOpen} onClose={() => setResetModalOpen(false)} title="Konfirmasi Reset Denah"
+        type="confirm" severity="warning" confirmLabel="Ya, Reset Denah" cancelLabel="Batal" onConfirm={handleResetMap}
+      >
+        Apakah Anda yakin ingin menghapus seluruh elemen denah map koordinasi? 
+        Aksi ini bersifat permanen, tidak dapat dibatalkan, dan akan membebaskan seluruh staff dari penugasan area.
       </Modal>
     </AdminShell>
   );

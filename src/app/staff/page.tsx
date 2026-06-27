@@ -1,10 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useStaffStore } from "@/features/staff/store/staff.store";
 import { useAreaStore } from "@/features/area/store/area.store";
-import { useAuthStore } from "@/features/auth/store/auth.store";
 import {
   Box,
   Card,
@@ -15,7 +13,10 @@ import {
   Select,
   MenuItem,
   Stack,
+  InputAdornment,
+  Chip,
 } from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import AppTypography from "@/components/AppTypography";
 import AppButton from "@/components/AppButton";
@@ -24,19 +25,42 @@ import DataTable, { Column } from "@/components/DataTable";
 import Pagination from "@/components/Pagination";
 import AdminShell from "@/components/AdminShell";
 import { Staff } from "@/features/staff/types/staff.types";
+import { useAdminGuard } from "@/hooks/useAdminGuard";
+import { verifyAdminAuth } from "@/utils/auth.utils";
 
 const PAGE_SIZE = 5;
 
 export default function StaffPage() {
-  const user = useAuthStore((state) => state.user);
-  const hasHydrated = useAuthStore((state) => state.hasHydrated);
-  const { staffs, addStaff, removeStaff, updateStaff, assignStaffToArea } = useStaffStore();
-  const { areas } = useAreaStore();
-  const router = useRouter();
+  const { isReady } = useAdminGuard();
+  const { staffs, fetchStaffs, addStaff, removeStaff, updateStaff, assignStaffToArea } = useStaffStore();
+  const { areas, fetchAreas } = useAreaStore();
+
+  const [roles, setRoles] = useState<{ id: string; name: string }[]>([]);
+  const [newRoleInput, setNewRoleInput] = useState("");
+
+  const fetchRoles = async () => {
+    try {
+      const res = await fetch("/api/roles");
+      if (res.ok) {
+        const data = await res.json();
+        setRoles(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch roles:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchStaffs();
+    fetchAreas();
+    fetchRoles();
+  }, [fetchStaffs, fetchAreas]);
 
   // Local state for forms and modals
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -47,31 +71,25 @@ export default function StaffPage() {
   // Pagination state
   const [page, setPage] = useState(1);
 
-  // Route security
-  useEffect(() => {
-    if (!hasHydrated) return;
+  // Search & filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterRole, setFilterRole] = useState<string>("all");
 
-    if (!user) {
-      router.push("/login");
-    } else if (user.role !== "admin") {
-      router.push("/dashboard");
-    }
-  }, [user, hasHydrated, router]);
+  if (!isReady) return null;
 
-  if (!hasHydrated || !user || user.role !== "admin") return null;
-
-  // Helper check for admin role before performing state mutation actions
-  const verifyAdminAuth = () => {
-    const currentUser = useAuthStore.getState().user;
-    if (!currentUser || currentUser.role !== "admin") {
-      throw new Error("Unauthorized action");
-    }
-  };
+  // Apply search and filter
+  const filteredStaffs = staffs.filter((s) => {
+    const matchesSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesRole = filterRole === "all" || s.role === filterRole;
+    return matchesSearch && matchesRole;
+  });
 
   const handleOpenAddForm = () => {
     setEditingId(null);
     setName("");
     setRole("");
+    setEmail("");
+    setPassword("");
     setFormOpen(true);
   };
 
@@ -79,7 +97,31 @@ export default function StaffPage() {
     setEditingId(staff.id);
     setName(staff.name);
     setRole(staff.role);
+    setEmail(staff.email || "");
+    setPassword(staff.password || "");
     setFormOpen(true);
+  };
+
+  const handleAddNewRole = async () => {
+    if (!newRoleInput.trim()) return;
+    try {
+      const res = await fetch("/api/roles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newRoleInput.trim() }),
+      });
+      if (res.ok) {
+        const { role: newRole } = await res.json();
+        setRoles((prev) => {
+          if (prev.some(r => r.id === newRole.id)) return prev;
+          return [...prev, newRole].sort((a, b) => a.name.localeCompare(b.name));
+        });
+        setRole(newRole.id); // Auto-select new role in the dropdown
+        setNewRoleInput("");
+      }
+    } catch (err) {
+      console.error("Failed to add custom role:", err);
+    }
   };
 
   const handleSave = () => {
@@ -94,12 +136,16 @@ export default function StaffPage() {
         name: name.trim(),
         role,
         assignedAreaId: existingStaff?.assignedAreaId,
+        email: email.trim() || undefined,
+        password: password || undefined,
       });
     } else {
       addStaff({
         id: Date.now().toString(),
         name: name.trim(),
         role,
+        email: email.trim() || undefined,
+        password: password || undefined,
       });
     }
 
@@ -122,7 +168,7 @@ export default function StaffPage() {
     setTargetStaff(null);
 
     // Adjust page if deletion empties current page
-    const totalRemaining = staffs.length - 1;
+    const totalRemaining = filteredStaffs.length - 1;
     const maxPage = Math.max(1, Math.ceil(totalRemaining / PAGE_SIZE));
     if (page > maxPage) {
       setPage(maxPage);
@@ -134,10 +180,10 @@ export default function StaffPage() {
     assignStaffToArea(staffId, areaId);
   };
 
-  // Pagination slicing
+  // Pagination slicing (on filtered results)
   const startIndex = (page - 1) * PAGE_SIZE;
-  const paginatedStaffs = staffs.slice(startIndex, startIndex + PAGE_SIZE);
-  const totalPages = Math.ceil(staffs.length / PAGE_SIZE);
+  const paginatedStaffs = filteredStaffs.slice(startIndex, startIndex + PAGE_SIZE);
+  const totalPages = Math.ceil(filteredStaffs.length / PAGE_SIZE);
 
   // DataTable columns definition
   const columns: Column<Staff>[] = [
@@ -150,28 +196,41 @@ export default function StaffPage() {
     {
       id: "name",
       label: "Nama Staff",
-      render: (row) => <Box sx={{ fontWeight: 600 }}>{row.name}</Box>,
+      render: (row) => (
+        <Box>
+          <Box sx={{ fontWeight: 600 }}>{row.name}</Box>
+          {row.email && (
+            <Box sx={{ fontSize: "0.72rem", color: "text.secondary", mt: 0.2, fontWeight: 500 }}>
+              {row.email}
+            </Box>
+          )}
+        </Box>
+      ),
     },
     {
       id: "role",
       label: "Peran / Tugas",
-      render: (row) => (
-        <Box
-          sx={{
-            display: "inline-block",
-            px: 1.5,
-            py: 0.5,
-            borderRadius: 2,
-            fontSize: "0.8rem",
-            fontWeight: "bold",
-            textTransform: "uppercase",
-            bgcolor: row.role === "security" ? "error.main" : "secondary.main",
-            color: "white",
-          }}
-        >
-          {row.role}
-        </Box>
-      ),
+      render: (row) => {
+        const foundRole = roles.find((r) => r.id === row.role);
+        const displayName = foundRole ? foundRole.name : row.role;
+        return (
+          <Box
+            sx={{
+              display: "inline-block",
+              px: 1.5,
+              py: 0.5,
+              borderRadius: 2,
+              fontSize: "0.75rem",
+              fontWeight: "bold",
+              textTransform: "uppercase",
+              bgcolor: row.role === "security" ? "error.main" : row.role === "cleaning" ? "secondary.main" : "primary.main",
+              color: "white",
+            }}
+          >
+            {displayName}
+          </Box>
+        );
+      },
     },
     {
       id: "area",
@@ -269,13 +328,70 @@ export default function StaffPage() {
         />
       </Box>
 
+      {/* Search & Filter Bar */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent sx={{ py: 2, "&:last-child": { pb: 2 } }}>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={2}
+            sx={{ alignItems: { xs: "stretch", sm: "center" } }}
+          >
+            <TextField
+              size="small"
+              placeholder="Cari nama staff..."
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+              sx={{ flexGrow: 1 }}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ color: "text.secondary", fontSize: 20 }} />
+                    </InputAdornment>
+                  ),
+                  sx: { borderRadius: 2 },
+                },
+              }}
+            />
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <InputLabel id="filter-role-label">Filter Peran</InputLabel>
+              <Select
+                labelId="filter-role-label"
+                value={filterRole}
+                label="Filter Peran"
+                onChange={(e) => { setFilterRole(e.target.value); setPage(1); }}
+                sx={{ borderRadius: 2 }}
+              >
+                <MenuItem value="all">Semua Peran</MenuItem>
+                {roles.map((r) => (
+                  <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            {(searchQuery || filterRole !== "all") && (
+              <Chip
+                label={`${filteredStaffs.length} hasil`}
+                size="small"
+                color="primary"
+                variant="outlined"
+                sx={{ fontWeight: 700, fontFamily: "var(--font-poppins)" }}
+              />
+            )}
+          </Stack>
+        </CardContent>
+      </Card>
+
       {/* Main Staff Table */}
       <Card>
         <CardContent sx={{ p: 0 }}>
           <DataTable
             columns={columns}
             rows={paginatedStaffs}
-            emptyMessage="Belum ada staff yang terdaftar. Gunakan tombol 'Tambah Staff Baru' di atas."
+            emptyMessage={
+              searchQuery || filterRole !== "all"
+                ? `Tidak ditemukan staff dengan pencarian "${searchQuery}"${filterRole !== "all" ? ` dan peran "${filterRole}"` : ""}.`
+                : "Belum ada staff yang terdaftar. Gunakan tombol 'Tambah Staff Baru' di atas."
+            }
           />
           {totalPages > 1 && (
             <Pagination page={page} count={totalPages} onChange={(newPage) => setPage(newPage)} />
@@ -313,6 +429,10 @@ export default function StaffPage() {
             }}
           />
 
+          <AppTypography preset="helperText" sx={{ mt: -1.5, mb: 0.5, pl: 0.5, color: "text.secondary", fontWeight: 500 }}>
+            💡 Akun login dibuat otomatis: <strong>[nama_depan]@coordination.com</strong> dengan password default <strong>staff</strong>.
+          </AppTypography>
+
           <FormControl fullWidth>
             <InputLabel id="role-select-label">Peran Tugas</InputLabel>
             <Select
@@ -322,10 +442,37 @@ export default function StaffPage() {
               onChange={(e) => setRole(e.target.value)}
               sx={{ borderRadius: 2 }}
             >
-              <MenuItem value="cleaning">Cleaning Service (Kebersihan)</MenuItem>
-              <MenuItem value="security">Security Patrol (Keamanan)</MenuItem>
+              {roles.map((r) => (
+                <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>
+              ))}
             </Select>
           </FormControl>
+
+          {/* Add custom role sub-form */}
+          <Box sx={{ border: "1px dashed", borderColor: "divider", p: 2, borderRadius: 2, bgcolor: "action.hover" }}>
+            <AppTypography preset="helperText" sx={{ fontWeight: 700, mb: 1, color: "text.primary" }}>
+              ➕ Peran tidak terdaftar? Tambahkan di sini:
+            </AppTypography>
+            <Stack direction="row" spacing={1.5}>
+              <TextField
+                size="small"
+                fullWidth
+                label="Nama Peran Baru"
+                placeholder="Misal: Medic, Teknisi, Sound..."
+                value={newRoleInput}
+                onChange={(e) => setNewRoleInput(e.target.value)}
+                slotProps={{ input: { sx: { borderRadius: 2 } } }}
+              />
+              <AppButton
+                size="small"
+                variant="contained"
+                color="primary"
+                label="Tambah"
+                onClick={handleAddNewRole}
+                disabled={!newRoleInput.trim()}
+              />
+            </Stack>
+          </Box>
         </Stack>
       </Modal>
 

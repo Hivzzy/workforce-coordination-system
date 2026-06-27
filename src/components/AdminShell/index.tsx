@@ -26,6 +26,7 @@ import PeopleIcon from "@mui/icons-material/People";
 import LayersIcon from "@mui/icons-material/Layers";
 import PaletteIcon from "@mui/icons-material/Palette";
 import LogoutIcon from "@mui/icons-material/Logout";
+import AssignmentIcon from "@mui/icons-material/Assignment";
 import AppTypography from "../AppTypography";
 import AppButton from "../AppButton";
 
@@ -54,8 +55,8 @@ export default function AdminShell({ children }: AdminShellProps) {
     if (!user) {
       router.push("/login");
     } else if (user.role !== "admin") {
-      // Redirect staff or unauthorized roles to login or a default safe space
-      router.push("/login");
+      // Redirect staff or unauthorized roles to their portal
+      router.push("/portal");
     }
   }, [user, hasHydrated, router]);
 
@@ -67,6 +68,7 @@ export default function AdminShell({ children }: AdminShellProps) {
     { text: "Dashboard", icon: <DashboardIcon />, path: "/dashboard" },
     { text: "Staff Management", icon: <PeopleIcon />, path: "/staff" },
     { text: "Area Management", icon: <LayersIcon />, path: "/area" },
+    { text: "Task Management", icon: <AssignmentIcon />, path: "/tasks" },
     { text: "Design System", icon: <PaletteIcon />, path: "/design-system" },
   ];
 
@@ -154,6 +156,10 @@ export default function AdminShell({ children }: AdminShellProps) {
                   py: 1.2,
                   color: isActive ? "primary.main" : "text.secondary",
                   backgroundColor: isActive ? "action.selected" : "transparent",
+                  borderLeft: isActive ? "3px solid" : "3px solid transparent",
+                  borderImage: isActive
+                    ? "linear-gradient(180deg, #6366f1, #06b6d4) 1"
+                    : "none",
                   "&:hover": {
                     backgroundColor: "action.hover",
                     color: "text.primary",
@@ -239,6 +245,21 @@ export default function AdminShell({ children }: AdminShellProps) {
           startIcon={<LogoutIcon sx={{ fontSize: 18 }} />}
           sx={{ width: "100%", py: 1 }}
         />
+
+        <Box sx={{ mt: 1, textAlign: "center" }}>
+          <AppTypography
+            preset="helperText"
+            sx={{
+              fontSize: "0.6rem",
+              color: "text.secondary",
+              opacity: 0.5,
+              fontWeight: 600,
+              letterSpacing: "0.08em",
+            }}
+          >
+            WORKFORCE SYSTEM v0.1.0
+          </AppTypography>
+        </Box>
       </Box>
     </Box>
   );

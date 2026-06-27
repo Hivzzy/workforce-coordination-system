@@ -17,7 +17,7 @@ export default function Home() {
       if (user.role === "admin") {
         router.push("/dashboard");
       } else {
-        router.push("/login");
+        router.push("/portal");
       }
     } else {
       router.push("/login");
