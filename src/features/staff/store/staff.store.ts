@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { Staff } from "../types/staff.types";
+import { apiFetch } from "@/utils/api-client";
 
 type StaffState = {
   staffs: Staff[];
@@ -12,77 +13,69 @@ type StaffState = {
 
 export const useStaffStore = create<StaffState>((set, get) => ({
   staffs: [],
+
   fetchStaffs: async () => {
     try {
-      const res = await fetch("/api/staffs");
-      if (res.ok) {
-        const staffs = await res.json();
-        set({ staffs });
-      }
+      const staffs = await apiFetch<Staff[]>("/staffs");
+      set({ staffs: Array.isArray(staffs) ? staffs : [] });
     } catch (error) {
       console.error("fetchStaffs failed:", error);
     }
   },
+
   addStaff: async (staff) => {
     try {
-      const res = await fetch("/api/staffs", {
+      const saved = await apiFetch<Staff>("/staffs", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(staff),
+        data: staff,
       });
-      if (res.ok) {
-        set({ staffs: [...get().staffs, staff] });
-      }
+      const newStaff = saved && saved.id ? saved : staff;
+      set({ staffs: [...get().staffs, newStaff] });
     } catch (error) {
       console.error("addStaff failed:", error);
     }
   },
+
   removeStaff: async (id) => {
     try {
-      const res = await fetch(`/api/staffs/${id}`, {
+      await apiFetch(`/staffs/${id}`, {
         method: "DELETE",
       });
-      if (res.ok) {
-        set({ staffs: get().staffs.filter((s) => s.id !== id) });
-      }
+      set({ staffs: get().staffs.filter((s) => s.id !== id) });
     } catch (error) {
       console.error("removeStaff failed:", error);
     }
   },
+
   updateStaff: async (updatedStaff) => {
     try {
-      const res = await fetch(`/api/staffs/${updatedStaff.id}`, {
+      await apiFetch(`/staffs/${updatedStaff.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updatedStaff),
+        data: updatedStaff,
       });
-      if (res.ok) {
-        set({
-          staffs: get().staffs.map((s) =>
-            s.id === updatedStaff.id ? { ...s, ...updatedStaff } : s
-          ),
-        });
-      }
+      set({
+        staffs: get().staffs.map((s) =>
+          s.id === updatedStaff.id ? { ...s, ...updatedStaff } : s
+        ),
+      });
     } catch (error) {
       console.error("updateStaff failed:", error);
     }
   },
+
   assignStaffToArea: async (staffId, areaId) => {
     try {
       const staff = get().staffs.find((s) => s.id === staffId);
       if (!staff) return;
-      const res = await fetch(`/api/staffs/${staffId}`, {
+      await apiFetch(`/staffs/${staffId}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...staff, assignedAreaId: areaId }),
+        data: { ...staff, assignedAreaId: areaId },
       });
-      if (res.ok) {
-        set({
-          staffs: get().staffs.map((s) =>
-            s.id === staffId ? { ...s, assignedAreaId: areaId } : s
-          ),
-        });
-      }
+      set({
+        staffs: get().staffs.map((s) =>
+          s.id === staffId ? { ...s, assignedAreaId: areaId } : s
+        ),
+      });
     } catch (error) {
       console.error("assignStaffToArea failed:", error);
     }

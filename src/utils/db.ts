@@ -18,49 +18,35 @@ const mockDb = {
     { id: "staff-007-user", email: "guntur@coordination.com", password: "staff", name: "Guntur Saputra", role: "staff", staffId: "staff-007" },
   ],
   roles: [
-    { id: "security", name: "Security Patrol" },
-    { id: "cleaning", name: "Cleaning Service" },
-    { id: "medic", name: "Medic / P3K" },
-    { id: "stage-crew", name: "Stage Crew / LO" },
-    { id: "vip-host", name: "VIP Lounge Host" },
-    { id: "cashier", name: "Kasir Food Court" },
-    { id: "traffic-officer", name: "Petugas Parkir" },
+    { id: "pramusaji", name: "Pramusaji Buffet" },
+    { id: "runner", name: "Runner Logistik / Refill" },
+    { id: "catering-coord", name: "Koordinator Katering" },
+    { id: "vip-host", name: "Pramusaji VIP Lounge" },
+    { id: "cleaning", name: "Kru Kebersihan Piring" },
+    { id: "security", name: "Security Gate Gedung" },
   ] as { id: string; name: string }[],
   areas: [
-    { id: "area-gate", name: "Pintu Masuk Utama", type: "zone", color: "#10b981", rotation: 0, layer: 4, x: 5, y: 40, w: 100, h: 80 },
-    { id: "area-stage", name: "Panggung Utama", type: "building", color: "#6366f1", rotation: 0, layer: 4, x: 75, y: 30, w: 200, h: 120 },
-    { id: "area-gathering", name: "Gathering Area", type: "zone", color: "#ef4444", rotation: 0, layer: 2, x: 40, y: 35, w: 240, h: 150 },
-    { id: "area-food", name: "Food Court", type: "stand", color: "#f59e0b", rotation: 0, layer: 4, x: 45, y: 10, w: 180, h: 80 },
-    { id: "area-vip", name: "VIP Lounge", type: "building", color: "#8b5cf6", rotation: 0, layer: 4, x: 15, y: 12, w: 140, h: 90 },
-    { id: "area-parking", name: "Area Parkir", type: "parking", color: "#6b7280", rotation: 0, layer: 1, x: 5, y: 70, w: 220, h: 130 },
-    {
-      id: "area-road",
-      name: "Jalan Utama",
-      type: "road",
-      color: "#4b5563",
-      rotation: 0,
-      layer: 1,
-      waypoints: [
-        { x: 100, y: 320 },
-        { x: 600, y: 320 },
-        { x: 1100, y: 320 }
-      ],
-      roadWidth: 32
-    }
+    { id: "area-buffet-main", name: "Meja Buffet Utama", type: "zone", color: "#10b981" },
+    { id: "area-buffet-a", name: "Buffet A (Nasi & Daging)", type: "stand", color: "#3b82f6" },
+    { id: "area-buffet-b", name: "Buffet B (Seafood & Sup)", type: "stand", color: "#6366f1" },
+    { id: "area-dessert", name: "Stand Dessert & Kue", type: "stand", color: "#ec4899" },
+    { id: "area-drinks", name: "Drink Station & Es Buah", type: "stand", color: "#f59e0b" },
+    { id: "area-vip", name: "VIP Lounge Keluarga", type: "building", color: "#8b5cf6" },
+    { id: "area-gate", name: "Pintu Masuk & Buku Tamu", type: "zone", color: "#6b7280" },
   ] as any[],
   staffs: [
-    { id: "staff-001", name: "Andi Wijaya", role: "security", assignedAreaId: "area-gate" },
-    { id: "staff-002", name: "Budi Santoso", role: "cleaning", assignedAreaId: "area-food" },
-    { id: "staff-003", name: "Citra Lestari", role: "medic", assignedAreaId: "area-gathering" },
-    { id: "staff-004", name: "Dedi Pratama", role: "stage-crew", assignedAreaId: "area-stage" },
+    { id: "staff-001", name: "Andi Wijaya", role: "catering-coord", assignedAreaId: "area-buffet-main" },
+    { id: "staff-002", name: "Budi Santoso", role: "runner", assignedAreaId: "area-buffet-a" },
+    { id: "staff-003", name: "Citra Lestari", role: "cleaning", assignedAreaId: "area-buffet-main" },
+    { id: "staff-004", name: "Dedi Pratama", role: "pramusaji", assignedAreaId: "area-buffet-b" },
     { id: "staff-005", name: "Evi Rahmawati", role: "vip-host", assignedAreaId: "area-vip" },
-    { id: "staff-006", name: "Fajar Nugroho", role: "cashier", assignedAreaId: "area-food" },
-    { id: "staff-007", name: "Guntur Saputra", role: "traffic-officer", assignedAreaId: "area-parking" },
+    { id: "staff-006", name: "Fajar Nugroho", role: "pramusaji", assignedAreaId: "area-dessert" },
+    { id: "staff-007", name: "Guntur Saputra", role: "security", assignedAreaId: "area-gate" },
   ] as any[],
   tasks: [
-    { id: "task-001", title: "Amankan Pintu Masuk Utama", description: "Jaga gerbang utama dari penyusup dan lakukan pemeriksaan tiket/gelang.", assignedStaffId: "staff-001", assignedAreaId: "area-gate", status: "pending", createdAt: new Date().toISOString() },
-    { id: "task-002", title: "Bersihkan Sampah Food Court", description: "Kelilingi area food court dan rapikan meja makan pengunjung.", assignedStaffId: "staff-002", assignedAreaId: "area-food", status: "in_progress", createdAt: new Date().toISOString() },
-    { id: "task-003", title: "Jaga Tenda Medis", description: "Standby di tenda P3K pusat untuk membantu pengunjung sakit.", assignedStaffId: "staff-003", assignedAreaId: "area-gathering", status: "completed", createdAt: new Date().toISOString() },
+    { id: "task-001", title: "Refill Stok Sate Ayam Buffet A", description: "Isi ulang porsi sate ayam di Buffet A karena sisa 20%.", assignedStaffId: "staff-002", assignedAreaId: "area-buffet-a", status: "in_progress", createdAt: new Date().toISOString() },
+    { id: "task-002", title: "Standby Servis Minuman VIP Lounge", description: "Pastikan cangkir dan jus di VIP Lounge selalu terisi penuh.", assignedStaffId: "staff-005", assignedAreaId: "area-vip", status: "pending", createdAt: new Date().toISOString() },
+    { id: "task-003", title: "Pembersihan Meja Piring Kotor", description: "Angkut piring kotor dari meja tamu di sekitar Buffet Utama.", assignedStaffId: "staff-003", assignedAreaId: "area-buffet-main", status: "completed", createdAt: new Date().toISOString() },
   ] as any[],
   system_state: {
     emergency_active: "false",
@@ -126,17 +112,8 @@ export async function initDb() {
       CREATE TABLE IF NOT EXISTS areas (
         id VARCHAR(255) PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
-        type VARCHAR(50) NOT NULL,
-        color VARCHAR(50),
-        rotation INTEGER DEFAULT 0,
-        layer INTEGER DEFAULT 4,
-        x DOUBLE PRECISION DEFAULT 10,
-        y DOUBLE PRECISION DEFAULT 10,
-        w INTEGER DEFAULT 160,
-        h INTEGER DEFAULT 120,
-        points JSONB,
-        waypoints JSONB,
-        road_width INTEGER DEFAULT 24
+        type VARCHAR(50),
+        color VARCHAR(50)
       );
     `);
 
@@ -197,14 +174,14 @@ export async function initDb() {
     if (areaCount === 0) {
       console.log("Seeding default event map areas...");
       await pool!.query(`
-        INSERT INTO areas (id, name, type, color, rotation, layer, x, y, w, h, points, waypoints, road_width) VALUES
-        ('area-gate', 'Pintu Masuk Utama', 'zone', '#10b981', 0, 4, 5, 40, 100, 80, NULL, NULL, 24),
-        ('area-stage', 'Panggung Utama', 'building', '#6366f1', 0, 4, 75, 30, 200, 120, NULL, NULL, 24),
-        ('area-gathering', 'Gathering Area', 'zone', '#ef4444', 0, 2, 40, 35, 240, 150, NULL, NULL, 24),
-        ('area-food', 'Food Court', 'stand', '#f59e0b', 0, 4, 45, 10, 180, 80, NULL, NULL, 24),
-        ('area-vip', 'VIP Lounge', 'building', '#8b5cf6', 0, 4, 15, 12, 140, 90, NULL, NULL, 24),
-        ('area-parking', 'Area Parkir', 'parking', '#6b7280', 0, 1, 5, 70, 220, 130, NULL, NULL, 24),
-        ('area-road', 'Jalan Utama', 'road', '#4b5563', 0, 1, 10, 40, 100, 100, NULL, '[{"x":100,"y":320},{"x":600,"y":320},{"x":1100,"y":320}]', 32)
+        INSERT INTO areas (id, name, type, color) VALUES
+        ('area-buffet-main', 'Meja Buffet Utama', 'zone', '#10b981'),
+        ('area-buffet-a', 'Buffet A (Nasi & Daging)', 'stand', '#3b82f6'),
+        ('area-buffet-b', 'Buffet B (Seafood & Sup)', 'stand', '#6366f1'),
+        ('area-dessert', 'Stand Dessert & Kue', 'stand', '#ec4899'),
+        ('area-drinks', 'Drink Station & Es Buah', 'stand', '#f59e0b'),
+        ('area-vip', 'VIP Lounge Keluarga', 'building', '#8b5cf6'),
+        ('area-gate', 'Pintu Masuk & Buku Tamu', 'zone', '#6b7280')
         ON CONFLICT DO NOTHING;
       `);
     }
@@ -456,13 +433,8 @@ function queryMock(text: string, params: any[] = []): { rows: any[] } {
 
   // 18. INSERT areas
   if (normalized.includes("insert into areas")) {
-    const [id, name, type, color, rotation, layer, x, y, w, h, points, waypoints, road_width] = params;
-    mockDb.areas.push({
-      id, name, type, color, rotation, layer, x, y, w, h,
-      points: points ? JSON.parse(points) : undefined,
-      waypoints: waypoints ? JSON.parse(waypoints) : undefined,
-      roadWidth: road_width
-    });
+    const [id, name, type, color] = params;
+    mockDb.areas.push({ id, name, type, color });
     return { rows: [] };
   }
 
@@ -475,15 +447,7 @@ function queryMock(text: string, params: any[] = []): { rows: any[] } {
       const clauses = setPart.split(",").map(c => c.trim());
       clauses.forEach((clause, index) => {
         const fieldName = clause.split("=")[0].trim().replace(/"/g, "");
-        let val = params[index];
-        if (fieldName === "points" || fieldName === "waypoints") {
-          val = val ? JSON.parse(val) : undefined;
-        }
-        if (fieldName === "road_width") {
-          area.roadWidth = val;
-        } else {
-          area[fieldName] = val;
-        }
+        area[fieldName] = params[index];
       });
     }
     return { rows: [] };
