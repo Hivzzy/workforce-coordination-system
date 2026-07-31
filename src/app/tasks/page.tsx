@@ -212,10 +212,10 @@ export default function TasksPage() {
         >
           <Box>
             <AppTypography preset="pageTitle" sx={{ mb: 1, fontWeight: 900 }}>
-              Daftar Tugas (Task Management)
+              Modul Penugasan Kru
             </AppTypography>
             <AppTypography preset="helperText" sx={{ color: "text.secondary" }}>
-              Delegasikan instruksi tugas operasional ke staff dan area tertentu di lapangan.
+              Delegasikan instruksi tugas operasional katering dan petakan penugasan staf kru ke area/zona event Kembang Tasik.
             </AppTypography>
           </Box>
           <AppButton

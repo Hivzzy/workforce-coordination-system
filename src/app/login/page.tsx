@@ -40,18 +40,29 @@ export default function LoginPage() {
   const router = useRouter();
   const user = useAuthStore((state) => state.user);
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
-  const setUser = useAuthStore((state) => state.setUser);
+  const isTokenExpired = useAuthStore((state) => state.isTokenExpired);
 
-  // If already logged in, redirect to appropriate page
   useEffect(() => {
-    if (hasHydrated && user) {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("expired") === "true") {
+        setAlertConfig({
+          title: "Sesi Berakhir",
+          severity: "error",
+          message: "Sesi otentikasi Anda telah berakhir. Silakan masuk kembali.",
+        });
+        setAlertOpen(true);
+      }
+    }
+
+    if (hasHydrated && user && !isTokenExpired()) {
       if (user.role === "admin") {
         router.push("/dashboard");
       } else {
         router.push("/portal");
       }
     }
-  }, [user, hasHydrated, router]);
+  }, [user, hasHydrated, isTokenExpired, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,11 +73,10 @@ export default function LoginPage() {
       const loggedInUser = await login(email, password);
 
       if (loggedInUser) {
-        setUser(loggedInUser);
         setAlertConfig({
           title: "Login Berhasil",
           severity: "success",
-          message: `Selamat datang kembali, ${loggedInUser.name}! Anda akan dialihkan ke ${loggedInUser.role === "admin" ? "dashboard utama" : "portal staff"}.`,
+          message: `Selamat datang kembali, ${loggedInUser.name}!`,
         });
         setAlertOpen(true);
       } else {
@@ -77,11 +87,11 @@ export default function LoginPage() {
         });
         setAlertOpen(true);
       }
-    } catch {
+    } catch (err: any) {
       setAlertConfig({
-        title: "Terjadi Kesalahan",
+        title: "Gagal Masuk",
         severity: "error",
-        message: "Gagal menghubungkan ke server. Hubungi administrator sistem.",
+        message: err.message || "Gagal menghubungkan ke server otentikasi backend. Pastikan server aktif.",
       });
       setAlertOpen(true);
     } finally {
@@ -103,248 +113,246 @@ export default function LoginPage() {
 
   return (
     <Box
+      className="bg-grid-pattern"
       sx={{
         minHeight: "100vh",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "linear-gradient(135deg, #1e1b4b 0%, #311042 50%, #030712 100%)",
-        py: 4,
+        backgroundColor: "#09090b",
+        py: 6,
         px: 2,
-        position: "relative",
-        overflow: "hidden",
       }}
     >
-      {/* ─── Floating Animated Orbs ─── */}
-      <Box
-        className="login-orb-1"
-        sx={{
-          position: "absolute",
-          width: 340,
-          height: 340,
-          borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, transparent 70%)",
-          top: "10%",
-          left: "5%",
-          filter: "blur(60px)",
-          pointerEvents: "none",
-        }}
-      />
-      <Box
-        className="login-orb-2"
-        sx={{
-          position: "absolute",
-          width: 280,
-          height: 280,
-          borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(6, 182, 212, 0.2) 0%, transparent 70%)",
-          bottom: "15%",
-          right: "10%",
-          filter: "blur(50px)",
-          pointerEvents: "none",
-        }}
-      />
-      <Box
-        className="login-orb-3"
-        sx={{
-          position: "absolute",
-          width: 200,
-          height: 200,
-          borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(244, 63, 94, 0.15) 0%, transparent 70%)",
-          top: "55%",
-          left: "60%",
-          filter: "blur(40px)",
-          pointerEvents: "none",
-        }}
-      />
-
-      <Container maxWidth="sm" sx={{ position: "relative", zIndex: 1 }}>
+      <Container maxWidth="xs">
         <Card
-          className="animate-card-entrance"
+          className="animate-fade-in"
           sx={{
-            backdropFilter: "blur(16px)",
-            backgroundColor: "rgba(24, 24, 27, 0.75)",
-            border: "1px solid rgba(255, 255, 255, 0.08)",
-            boxShadow: "0 24px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(99, 102, 241, 0.05)",
-            borderRadius: 4,
-            overflow: "visible",
+            backgroundColor: "#121215",
+            border: "1px solid #1e1e24",
+            borderRadius: 3,
+            boxShadow: "none",
           }}
         >
-          <CardContent sx={{ p: { xs: 4, sm: 6 } }}>
-            {/* Logo/Branding header */}
-            <Box sx={{ textAlign: "center", mb: 5 }}>
+          <CardContent sx={{ p: { xs: 3.5, sm: 4.5 } }}>
+            {/* Header / Logo */}
+            <Box sx={{ mb: 4, textAlign: "left" }}>
               <Box
                 sx={{
                   display: "inline-flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  width: 56,
-                  height: 56,
-                  borderRadius: 3,
-                  backgroundImage: "linear-gradient(135deg, #6366f1 0%, #06b6d4 100%)",
-                  boxShadow: "0 8px 24px rgba(99, 102, 241, 0.3)",
-                  mb: 2,
-                  color: "#ffffff",
-                  fontSize: 24,
-                  fontWeight: "bold",
+                  width: 36,
+                  height: 36,
+                  borderRadius: 1.5,
+                  backgroundColor: "#18181b",
+                  border: "1px solid #27272a",
+                  mb: 2.5,
+                  position: "relative",
                 }}
               >
-                W
+                <AppTypography
+                  sx={{
+                    color: "#ffffff",
+                    fontSize: "0.875rem",
+                    fontWeight: 700,
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  KT
+                </AppTypography>
+                <Box
+                  sx={{
+                    position: "absolute",
+                    top: 6,
+                    right: 6,
+                    width: 5,
+                    height: 5,
+                    borderRadius: "50%",
+                    backgroundColor: "#eab308",
+                  }}
+                />
               </Box>
-              <AppTypography preset="pageTitle" sx={{ color: "#ffffff", fontWeight: 800, mb: 1 }}>
-                Workforce System
+              <AppTypography
+                preset="pageTitle"
+                sx={{
+                  color: "#ffffff",
+                  fontWeight: 700,
+                  fontSize: "1.25rem",
+                  letterSpacing: "-0.02em",
+                  mb: 0.5,
+                }}
+              >
+                Kembang Tasik
               </AppTypography>
-              <AppTypography preset="helperText" sx={{ color: "grey.400" }}>
-                Masukkan kredensial Anda untuk masuk ke Panel Koordinator
+              <AppTypography
+                preset="helperText"
+                sx={{ color: "#a1a1aa", fontSize: "0.8125rem" }}
+              >
+                Workforce & Event Coordination System
               </AppTypography>
             </Box>
 
             {/* Login Form */}
-            <Box component="form" onSubmit={handleLogin} sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-              <TextField
-                fullWidth
-                variant="outlined"
-                label="Alamat Email"
-                placeholder="admin@coordination.com"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={loading}
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <EmailIcon sx={{ color: "grey.500" }} />
-                      </InputAdornment>
-                    ),
-                    sx: {
-                      color: "#ffffff",
-                      backgroundColor: "rgba(255, 255, 255, 0.03)",
-                      "& .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "rgba(255, 255, 255, 0.12)",
-                      },
-                      "&:hover .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "primary.main",
-                      },
+            <Box
+              component="form"
+              onSubmit={handleLogin}
+              sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}
+            >
+              <Box>
+                <AppTypography
+                  preset="helperText"
+                  sx={{ color: "#a1a1aa", fontSize: "0.75rem", fontWeight: 600, mb: 0.75, display: "block" }}
+                >
+                  Email
+                </AppTypography>
+                <TextField
+                  fullWidth
+                  variant="outlined"
+                  placeholder="admin@coordination.com"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={loading}
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <EmailIcon sx={{ color: "#71717a", fontSize: 18 }} />
+                        </InputAdornment>
+                      ),
                     },
-                  },
-                  inputLabel: {
-                    sx: { color: "grey.500" },
-                  },
-                }}
-              />
+                  }}
+                />
+              </Box>
 
-              <TextField
-                fullWidth
-                variant="outlined"
-                label="Password"
-                type={showPassword ? "text" : "password"}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={loading}
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LockIcon sx={{ color: "grey.500" }} />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          aria-label="toggle password visibility"
-                          onClick={() => setShowPassword(!showPassword)}
-                          edge="end"
-                          sx={{ color: "grey.500" }}
-                        >
-                          {showPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                    sx: {
-                      color: "#ffffff",
-                      backgroundColor: "rgba(255, 255, 255, 0.03)",
-                      "& .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "rgba(255, 255, 255, 0.12)",
-                      },
-                      "&:hover .MuiOutlinedInput-notchedOutline": {
-                        borderColor: "primary.main",
-                      },
+              <Box>
+                <AppTypography
+                  preset="helperText"
+                  sx={{ color: "#a1a1aa", fontSize: "0.75rem", fontWeight: 600, mb: 0.75, display: "block" }}
+                >
+                  Password
+                </AppTypography>
+                <TextField
+                  fullWidth
+                  variant="outlined"
+                  placeholder="••••••••"
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={loading}
+                  slotProps={{
+                    input: {
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <LockIcon sx={{ color: "#71717a", fontSize: 18 }} />
+                        </InputAdornment>
+                      ),
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            aria-label="toggle password visibility"
+                            onClick={() => setShowPassword(!showPassword)}
+                            edge="end"
+                            size="small"
+                            sx={{ color: "#71717a" }}
+                          >
+                            {showPassword ? (
+                              <VisibilityOff sx={{ fontSize: 18 }} />
+                            ) : (
+                              <Visibility sx={{ fontSize: 18 }} />
+                            )}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
                     },
-                  },
-                  inputLabel: {
-                    sx: { color: "grey.500" },
-                  },
-                }}
-              />
+                  }}
+                />
+              </Box>
 
               <AppButton
                 type="submit"
                 variant="contained"
-                label={loading ? "Mengecek Kredensial..." : "Masuk Sistem"}
+                label={loading ? "Verifying..." : "Sign in"}
                 loading={loading}
                 sx={{
-                  mt: 2,
-                  py: 1.6,
-                  fontSize: "1rem",
-                  fontWeight: "bold",
-                  backgroundImage: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
+                  mt: 1,
+                  py: 1.2,
+                  fontSize: "0.875rem",
+                  fontWeight: 600,
+                  backgroundColor: "#eab308",
+                  color: "#000000",
+                  "&:hover": {
+                    backgroundColor: "#ca8a04",
+                  },
                 }}
               />
             </Box>
 
-            {/* ─── Demo Credential Hints ─── */}
+            {/* Demo Credentials Section */}
             <Box
               sx={{
-                mt: 4,
-                p: 2,
-                borderRadius: 2.5,
-                backgroundColor: "rgba(99, 102, 241, 0.06)",
-                border: "1px solid rgba(99, 102, 241, 0.12)",
+                mt: 3.5,
+                pt: 3,
+                borderTop: "1px solid #1e1e24",
               }}
             >
-              <Box sx={{ display: "flex", alignItems: "center", gap: 0.8, mb: 1.5 }}>
-                <InfoOutlinedIcon sx={{ fontSize: 16, color: "primary.main" }} />
-                <AppTypography preset="helperText" sx={{ color: "primary.main", fontWeight: 700, fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                  Demo Credentials
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 1.5 }}>
+                <InfoOutlinedIcon sx={{ fontSize: 14, color: "#eab308" }} />
+                <AppTypography
+                  preset="helperText"
+                  sx={{
+                    color: "#a1a1aa",
+                    fontWeight: 600,
+                    fontSize: "0.6875rem",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  Demo Accounts
                 </AppTypography>
               </Box>
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, justifyContent: "space-between" }}>
                   <Chip
                     label="Admin"
                     size="small"
                     sx={{
-                      bgcolor: "primary.main",
-                      color: "#fff",
-                      fontWeight: 700,
-                      fontSize: "0.65rem",
-                      height: 22,
-                      fontFamily: "var(--font-poppins)",
+                      backgroundColor: "rgba(234, 179, 8, 0.15)",
+                      color: "#eab308",
+                      border: "1px solid rgba(234, 179, 8, 0.3)",
+                      fontWeight: 600,
+                      fontSize: "0.6875rem",
+                      height: 20,
                     }}
                   />
-                  <AppTypography preset="helperText" sx={{ color: "grey.400", fontSize: "0.75rem", fontFamily: "monospace" }}>
-                    admin@coordination.com (atau @gmail.com) / admin
+                  <AppTypography
+                    preset="helperText"
+                    sx={{ color: "#71717a", fontSize: "0.75rem", fontFamily: "var(--font-mono)" }}
+                  >
+                    admin@coordination.com / admin
                   </AppTypography>
                 </Box>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, justifyContent: "space-between" }}>
                   <Chip
                     label="Staff"
                     size="small"
                     sx={{
-                      bgcolor: "secondary.main",
-                      color: "#fff",
-                      fontWeight: 700,
-                      fontSize: "0.65rem",
-                      height: 22,
-                      fontFamily: "var(--font-poppins)",
+                      backgroundColor: "#18181b",
+                      color: "#a1a1aa",
+                      border: "1px solid #27272a",
+                      fontWeight: 600,
+                      fontSize: "0.6875rem",
+                      height: 20,
                     }}
                   />
-                  <AppTypography preset="helperText" sx={{ color: "grey.400", fontSize: "0.75rem", fontFamily: "monospace" }}>
-                    staff@coordination.com (atau @gmail.com) / staff
+                  <AppTypography
+                    preset="helperText"
+                    sx={{ color: "#71717a", fontSize: "0.75rem", fontFamily: "var(--font-mono)" }}
+                  >
+                    staff@coordination.com / staff
                   </AppTypography>
                 </Box>
               </Box>
@@ -360,7 +368,7 @@ export default function LoginPage() {
         title={alertConfig.title}
         type="alert"
         severity={alertConfig.severity}
-        confirmLabel={alertConfig.severity === "success" ? "Lanjutkan" : "Coba Lagi"}
+        confirmLabel={alertConfig.severity === "success" ? "Continue" : "Try Again"}
       >
         {alertConfig.message}
       </Modal>

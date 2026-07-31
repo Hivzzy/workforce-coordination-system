@@ -28,6 +28,8 @@ import { Staff } from "@/features/staff/types/staff.types";
 import { useAdminGuard } from "@/hooks/useAdminGuard";
 import { verifyAdminAuth } from "@/utils/auth.utils";
 
+import { apiFetch } from "@/utils/api-client";
+
 const PAGE_SIZE = 5;
 
 export default function StaffPage() {
@@ -40,11 +42,8 @@ export default function StaffPage() {
 
   const fetchRoles = async () => {
     try {
-      const res = await fetch("/api/roles");
-      if (res.ok) {
-        const data = await res.json();
-        setRoles(data);
-      }
+      const data = await apiFetch<{ id: string; name: string }[]>("/roles");
+      setRoles(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Failed to fetch roles:", err);
     }
@@ -105,18 +104,16 @@ export default function StaffPage() {
   const handleAddNewRole = async () => {
     if (!newRoleInput.trim()) return;
     try {
-      const res = await fetch("/api/roles", {
+      const newRole = await apiFetch<{ id: string; name: string }>("/roles", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newRoleInput.trim() }),
+        data: { name: newRoleInput.trim() },
       });
-      if (res.ok) {
-        const { role: newRole } = await res.json();
+      if (newRole && newRole.id) {
         setRoles((prev) => {
-          if (prev.some(r => r.id === newRole.id)) return prev;
+          if (prev.some((r) => r.id === newRole.id)) return prev;
           return [...prev, newRole].sort((a, b) => a.name.localeCompare(b.name));
         });
-        setRole(newRole.id); // Auto-select new role in the dropdown
+        setRole(newRole.id);
         setNewRoleInput("");
       }
     } catch (err) {
@@ -312,9 +309,9 @@ export default function StaffPage() {
         }}
       >
         <Box>
-          <AppTypography preset="pageTitle">Manajemen Staff (HRMS)</AppTypography>
+          <AppTypography preset="pageTitle">Modul User Management & Penugasan Staf Kru</AppTypography>
           <AppTypography preset="helperText" color="text.secondary">
-            Tambahkan staff lapangan, kelola peran, dan lakukan delegasi wilayah koordinasi.
+            Kelola data akun kru katering & WO Kembang Tasik, atur peran pengguna, dan tentukan alokasi penugasan staf.
           </AppTypography>
         </Box>
 

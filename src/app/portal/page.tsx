@@ -20,43 +20,42 @@ import {
   Stack,
 } from "@mui/material";
 import LogoutIcon from "@mui/icons-material/Logout";
-import LocationOnIcon from "@mui/icons-material/LocationOn";
-import PersonIcon from "@mui/icons-material/Person";
-import AssignmentIcon from "@mui/icons-material/Assignment";
-import WavingHandIcon from "@mui/icons-material/WavingHand";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
+import PersonOutlinedIcon from "@mui/icons-material/PersonOutlined";
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
+import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
 import AppTypography from "@/components/AppTypography";
 import HelpButton from "@/components/HelpButton";
 import RefillButton from "@/components/RefillButton";
 import AppButton from "@/components/AppButton";
+import { useStaffGuard } from "@/hooks/useStaffGuard";
+import { logout as serviceLogout } from "@/features/auth/services/auth.services";
+import { apiFetch } from "@/utils/api-client";
 
 export default function StaffPortalPage() {
-  const user = useAuthStore((s) => s.user);
-  const hasHydrated = useAuthStore((s) => s.hasHydrated);
-  const logout = useAuthStore((s) => s.logout);
+  const { isReady } = useStaffGuard();
+  const user = useAuthStore((state) => state.user);
   const router = useRouter();
 
   const { staffs, fetchStaffs } = useStaffStore();
   const { areas, fetchAreas } = useAreaStore();
   const { tasks, fetchTasks, updateTaskStatus } = useTaskStore();
 
+  const [roles, setRoles] = useState<{ id: string; name: string }[]>([]);
+  const [emergencyActive, setEmergencyActive] = useState(false);
   const [helpStatus, setHelpStatus] = useState<"idle" | "requested">("idle");
   const [refillStatus, setRefillStatus] = useState<"idle" | "requested">("idle");
-  const [emergencyActive, setEmergencyActive] = useState(false);
-
-  const [roles, setRoles] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
+    if (!isReady || !user) return;
+
     fetchStaffs();
     fetchAreas();
 
     const fetchRoles = async () => {
       try {
-        const res = await fetch("/api/roles");
-        if (res.ok) {
-          const data = await res.json();
-          setRoles(data);
-        }
+        const data = await apiFetch<{ id: string; name: string }[]>("/roles");
+        setRoles(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error("Failed to fetch roles in portal:", err);
       }
@@ -64,9 +63,8 @@ export default function StaffPortalPage() {
 
     const fetchSystemState = async () => {
       try {
-        const res = await fetch("/api/system-state");
-        if (res.ok) {
-          const data = await res.json();
+        const data = await apiFetch<{ emergencyActive: boolean; helpStatus: string; refillStatus: string }>("/system-state");
+        if (data) {
           setEmergencyActive(data.emergencyActive);
           setHelpStatus(data.helpStatus !== "idle" ? "requested" : "idle");
           setRefillStatus(data.refillStatus !== "idle" ? "requested" : "idle");
@@ -84,19 +82,9 @@ export default function StaffPortalPage() {
     fetchSystemState();
     const interval = setInterval(fetchSystemState, 3000);
     return () => clearInterval(interval);
-  }, [fetchStaffs, fetchAreas, user]);
+  }, [isReady, user, fetchStaffs, fetchAreas, fetchTasks]);
 
-  // Staff portal guard: must be logged in as staff
-  useEffect(() => {
-    if (!hasHydrated) return;
-    if (!user) {
-      router.push("/login");
-    } else if (user.role === "admin") {
-      router.push("/dashboard");
-    }
-  }, [user, hasHydrated, router]);
-
-  if (!hasHydrated || !user || user.role !== "staff") return null;
+  if (!isReady || !user) return null;
 
   // Find the staff record linked to this user
   const myStaff = staffs.find((s) => s.id === user.staffId) || null;
@@ -104,8 +92,8 @@ export default function StaffPortalPage() {
     ? areas.find((a) => a.id === myStaff.assignedAreaId)
     : null;
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await serviceLogout();
     router.push("/login");
   };
 
@@ -113,10 +101,9 @@ export default function StaffPortalPage() {
     const nextState = helpStatus === "idle" ? (myArea ? myArea.name : "Portal Staff") : "idle";
     setHelpStatus(nextState === "idle" ? "idle" : "requested");
     try {
-      await fetch("/api/system-state", {
+      await apiFetch("/system-state", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ helpStatus: nextState }),
+        data: { helpStatus: nextState },
       });
     } catch (err) {
       console.error("Failed to sync help request:", err);
@@ -127,10 +114,9 @@ export default function StaffPortalPage() {
     const nextState = refillStatus === "idle" ? (myArea ? myArea.name : "Portal Staff") : "idle";
     setRefillStatus(nextState === "idle" ? "idle" : "requested");
     try {
-      await fetch("/api/system-state", {
+      await apiFetch("/system-state", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refillStatus: nextState }),
+        data: { refillStatus: nextState },
       });
     } catch (err) {
       console.error("Failed to sync refill request:", err);
@@ -139,16 +125,17 @@ export default function StaffPortalPage() {
 
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Selamat Pagi";
-    if (hour < 17) return "Selamat Siang";
-    return "Selamat Malam";
+    if (hour < 12) return "Good morning";
+    if (hour < 17) return "Good afternoon";
+    return "Good evening";
   };
 
   return (
     <Box
+      className="bg-grid-pattern"
       sx={{
         minHeight: "100vh",
-        bgcolor: "background.default",
+        backgroundColor: "#09090b",
         display: "flex",
         flexDirection: "column",
       }}
@@ -158,147 +145,143 @@ export default function StaffPortalPage() {
         position="sticky"
         elevation={0}
         sx={{
-          bgcolor: "background.paper",
-          borderBottom: "1px solid",
-          borderColor: "divider",
-          color: "text.primary",
+          backgroundColor: "#121215",
+          borderBottom: "1px solid #1e1e24",
+          color: "#ffffff",
         }}
       >
         <Toolbar sx={{ justifyContent: "space-between", px: 2 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
             <Avatar
               sx={{
-                width: 36,
-                height: 36,
-                bgcolor: "secondary.main",
+                width: 34,
+                height: 34,
+                backgroundColor: "#18181b",
+                color: "#ffffff",
+                border: "1px solid #27272a",
                 fontWeight: 700,
-                fontSize: "0.9rem",
+                fontSize: "0.875rem",
               }}
             >
               {user.name.charAt(0).toUpperCase()}
             </Avatar>
             <Box>
-              <AppTypography
-                preset="bodyText"
-                sx={{ fontWeight: 700, fontSize: "0.9rem", lineHeight: 1.2 }}
-              >
-                Staff Portal
-              </AppTypography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                <AppTypography
+                  preset="bodyText"
+                  sx={{ fontWeight: 700, fontSize: "0.875rem", color: "#ffffff", lineHeight: 1.2 }}
+                >
+                  Field Staff Portal
+                </AppTypography>
+                <Box
+                  sx={{
+                    width: 5,
+                    height: 5,
+                    borderRadius: "50%",
+                    backgroundColor: "#eab308",
+                  }}
+                />
+              </Box>
               <AppTypography
                 preset="helperText"
-                sx={{ fontSize: "0.65rem", color: "secondary.main", fontWeight: 600 }}
+                sx={{ fontSize: "0.6875rem", color: "#a1a1aa" }}
               >
-                WORKFORCE SYSTEM
+                Kembang Tasik WO & Catering
               </AppTypography>
             </Box>
           </Box>
-          <IconButton onClick={handleLogout} sx={{ color: "error.main" }}>
-            <LogoutIcon />
+          <IconButton onClick={handleLogout} size="small" sx={{ color: "#71717a", "&:hover": { color: "#ef4444" } }}>
+            <LogoutIcon sx={{ fontSize: 18 }} />
           </IconButton>
         </Toolbar>
       </AppBar>
 
-      {/* ─── Main Content ─── */}
-      <Box sx={{ flexGrow: 1, p: { xs: 2, sm: 3 }, maxWidth: 600, mx: "auto", width: "100%" }}>
-        {/* Emergency Banner */}
+      {/* ─── Main Mobile Content Container ─── */}
+      <Box sx={{ flexGrow: 1, p: { xs: 2, sm: 3 }, maxWidth: 540, mx: "auto", width: "100%" }}>
+        {/* Emergency Dispatch Banner */}
         {emergencyActive && (
           <Paper
-            className="animate-pulse-glow"
-            elevation={3}
+            elevation={0}
             sx={{
               mb: 3,
               p: 2,
-              bgcolor: "error.main",
-              color: "error.contrastText",
-              borderRadius: 3,
+              backgroundColor: "rgba(239, 68, 68, 0.1)",
+              color: "#ef4444",
+              borderRadius: 2,
               display: "flex",
               alignItems: "center",
-              gap: 2,
-              border: "1px solid",
-              borderColor: "error.dark",
+              gap: 1.5,
+              border: "1px solid rgba(239, 68, 68, 0.3)",
             }}
           >
-            <WarningAmberIcon sx={{ fontSize: 28 }} />
+            <WarningAmberOutlinedIcon sx={{ fontSize: 24 }} />
             <Box>
-              <AppTypography preset="bodyText" sx={{ fontWeight: 800, color: "inherit", fontSize: "0.9rem" }}>
-                🚨 PERINTAH DARURAT AKTIF
+              <AppTypography preset="bodyText" sx={{ fontWeight: 700, color: "inherit", fontSize: "0.875rem" }}>
+                🚨 EMERGENCY DISPATCH ACTIVE
               </AppTypography>
-              <AppTypography preset="helperText" sx={{ color: "rgba(255,255,255,0.9)", fontWeight: 600, fontSize: "0.75rem" }}>
-                Semua staff harap segera berkumpul di GATHERING AREA sekarang!
+              <AppTypography preset="helperText" sx={{ color: "#fca5a5", fontSize: "0.75rem" }}>
+                All crew members must report to the Gathering Area immediately.
               </AppTypography>
             </Box>
           </Paper>
         )}
 
-        {/* Welcome Card */}
-        <Card
-          sx={{
-            mb: 3,
-            background: "linear-gradient(135deg, #06b6d4 0%, #6366f1 100%)",
-            color: "#ffffff",
-            overflow: "visible",
-          }}
-        >
-          <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-              <WavingHandIcon sx={{ fontSize: 20 }} />
-              <AppTypography preset="helperText" sx={{ color: "rgba(255,255,255,0.8)", fontWeight: 600, fontSize: "0.75rem" }}>
-                {getGreeting()}
-              </AppTypography>
-            </Box>
-            <AppTypography preset="pageTitle" sx={{ color: "#ffffff", fontWeight: 800, mb: 0.5 }}>
+        {/* Welcome Profile Card */}
+        <Card sx={{ mb: 2.5, p: 0.5 }}>
+          <CardContent sx={{ p: 2.5 }}>
+            <AppTypography preset="helperText" sx={{ color: "#eab308", fontWeight: 600, fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", mb: 0.5 }}>
+              {getGreeting()},
+            </AppTypography>
+            <AppTypography preset="pageTitle" sx={{ color: "#ffffff", fontWeight: 700, fontSize: "1.35rem", letterSpacing: "-0.02em", mb: 0.25 }}>
               {user.name}
             </AppTypography>
-            <AppTypography preset="helperText" sx={{ color: "rgba(255,255,255,0.7)" }}>
+            <AppTypography preset="helperText" sx={{ color: "#71717a", fontSize: "0.8125rem" }}>
               {user.email}
             </AppTypography>
           </CardContent>
         </Card>
 
-        {/* Area Assignment Card */}
-        <Card sx={{ mb: 3 }}>
-          <CardContent sx={{ p: 3 }}>
+        {/* Assigned Zone Info Card */}
+        <Card sx={{ mb: 2.5, p: 0.5 }}>
+          <CardContent sx={{ p: 2.5 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-              <LocationOnIcon color="primary" sx={{ fontSize: 20 }} />
-              <AppTypography preset="cardTitle" sx={{ fontWeight: 700 }}>
-                Area Penugasan
+              <LocationOnOutlinedIcon sx={{ color: "#eab308", fontSize: 18 }} />
+              <AppTypography preset="cardTitle" sx={{ fontWeight: 600, fontSize: "0.9375rem", color: "#ffffff" }}>
+                Assigned Zone
               </AppTypography>
             </Box>
             {myArea ? (
               <Paper
                 variant="outlined"
                 sx={{
-                  p: 2.5,
-                  borderRadius: 3,
-                  borderColor: "primary.main",
-                  borderWidth: 2,
-                  bgcolor: (t) =>
-                    t.palette.mode === "dark"
-                      ? "rgba(99, 102, 241, 0.06)"
-                      : "rgba(99, 102, 241, 0.04)",
+                  p: 2,
+                  borderRadius: 2,
+                  borderColor: "rgba(234, 179, 8, 0.3)",
+                  backgroundColor: "rgba(234, 179, 8, 0.05)",
                 }}
               >
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-                  <AppTypography preset="sectionTitle" sx={{ fontWeight: 800 }}>
+                  <AppTypography preset="sectionTitle" sx={{ fontWeight: 700, fontSize: "1.1rem", color: "#ffffff" }}>
                     {myArea.name}
                   </AppTypography>
                   <Chip
-                    label={myArea.type || "zone"}
+                    label={myArea.type || "Zone"}
                     size="small"
-                    color="primary"
                     sx={{
-                      textTransform: "uppercase",
-                      fontWeight: 700,
-                      fontSize: "0.65rem",
-                      fontFamily: "var(--font-poppins)",
+                      backgroundColor: "rgba(234, 179, 8, 0.15)",
+                      color: "#eab308",
+                      border: "1px solid rgba(234, 179, 8, 0.3)",
+                      fontWeight: 600,
+                      fontSize: "0.6875rem",
+                      height: 22,
                     }}
                   />
                 </Box>
                 {myStaff && (
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.8 }}>
-                    <PersonIcon sx={{ fontSize: 16, color: "text.secondary" }} />
-                    <AppTypography preset="helperText" sx={{ fontWeight: 600 }}>
-                      Peran: {roles.find((r) => r.id === myStaff.role)?.name || myStaff.role}
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                    <PersonOutlinedIcon sx={{ fontSize: 16, color: "#a1a1aa" }} />
+                    <AppTypography preset="helperText" sx={{ color: "#a1a1aa", fontSize: "0.8125rem" }}>
+                      Role: <strong style={{ color: "#ffffff" }}>{roles.find((r) => r.id === myStaff.role)?.name || myStaff.role}</strong>
                     </AppTypography>
                   </Box>
                 )}
@@ -307,37 +290,38 @@ export default function StaffPortalPage() {
               <Paper
                 variant="outlined"
                 sx={{
-                  p: 3,
-                  borderRadius: 3,
+                  p: 2.5,
+                  borderRadius: 2,
                   textAlign: "center",
-                  borderStyle: "dashed",
+                  borderColor: "#27272a",
+                  backgroundColor: "#09090b",
                 }}
               >
-                <LocationOnIcon sx={{ fontSize: 40, color: "text.secondary", opacity: 0.4, mb: 1 }} />
-                <AppTypography preset="bodyText" sx={{ fontWeight: 600, color: "text.secondary" }}>
-                  Belum Ada Penugasan
+                <LocationOnOutlinedIcon sx={{ fontSize: 32, color: "#3f3f46", mb: 0.75 }} />
+                <AppTypography preset="bodyText" sx={{ fontWeight: 600, color: "#a1a1aa", fontSize: "0.875rem" }}>
+                  No Area Assigned
                 </AppTypography>
-                <AppTypography preset="helperText" sx={{ mt: 0.5 }}>
-                  Admin belum mendelegasikan area kerja untuk Anda. Silakan hubungi koordinator.
+                <AppTypography preset="helperText" sx={{ color: "#71717a", fontSize: "0.75rem", mt: 0.5 }}>
+                  Coordinator has not assigned a designated event zone to your account yet.
                 </AppTypography>
               </Paper>
             )}
           </CardContent>
         </Card>
 
-        {/* Quick Actions */}
-        <Card sx={{ mb: 3 }}>
-          <CardContent sx={{ p: 3 }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-              <AssignmentIcon sx={{ color: "warning.main", fontSize: 20 }} />
-              <AppTypography preset="cardTitle" sx={{ fontWeight: 700 }}>
-                Aksi Cepat
+        {/* Quick Operations Signals (Help & Refill) */}
+        <Card sx={{ mb: 2.5, p: 0.5 }}>
+          <CardContent sx={{ p: 2.5 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+              <AssignmentOutlinedIcon sx={{ color: "#a1a1aa", fontSize: 18 }} />
+              <AppTypography preset="cardTitle" sx={{ fontWeight: 600, fontSize: "0.9375rem", color: "#ffffff" }}>
+                Field Signal Triggers
               </AppTypography>
             </Box>
-            <AppTypography preset="helperText" sx={{ mb: 3 }}>
-              Gunakan tombol di bawah untuk mengirim sinyal bantuan atau permintaan isi ulang logistik ke koordinator.
+            <AppTypography preset="helperText" sx={{ mb: 2.5, color: "#71717a", fontSize: "0.75rem" }}>
+              Send instant alert requests directly to administrative coordinators.
             </AppTypography>
-            <Stack spacing={2}>
+            <Stack spacing={1.5}>
               <HelpButton
                 status={helpStatus}
                 onClick={handleHelpToggle}
@@ -350,106 +334,129 @@ export default function StaffPortalPage() {
           </CardContent>
         </Card>
 
-        {/* Task List */}
-        <Card sx={{ borderRadius: 3, boxShadow: "0px 6px 20px rgba(0, 0, 0, 0.02)", border: "1px solid rgba(0, 0, 0, 0.05)", mb: 4 }}>
-          <CardContent sx={{ p: 3 }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-              <AssignmentIcon color="primary" sx={{ fontSize: 22 }} />
-              <AppTypography preset="cardTitle" sx={{ fontWeight: 800 }}>
-                Tugas Saya ({tasks.length})
-              </AppTypography>
-            </Box>
-            <Divider sx={{ mb: 3, opacity: 0.5 }} />
-            
-            {tasks.length === 0 ? (
-              <Box sx={{ textAlign: "center", py: 5 }}>
-                <AssignmentIcon sx={{ fontSize: 48, color: "text.secondary", opacity: 0.25, mb: 1 }} />
-                <AppTypography preset="bodyText" sx={{ fontWeight: 600, color: "text.secondary" }}>
-                  Belum Ada Tugas
+        {/* Assigned Tasks List */}
+        <Card sx={{ p: 0.5, mb: 3 }}>
+          <CardContent sx={{ p: 2.5 }}>
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <AssignmentOutlinedIcon sx={{ color: "#eab308", fontSize: 18 }} />
+                <AppTypography preset="cardTitle" sx={{ fontWeight: 700, fontSize: "0.9375rem", color: "#ffffff" }}>
+                  My Assigned Tasks
                 </AppTypography>
-                <AppTypography preset="helperText" sx={{ mt: 0.5 }}>
-                  Tugas yang didelegasikan oleh koordinator akan muncul di sini secara real-time.
+              </Box>
+              <Chip
+                label={`${tasks.length} tasks`}
+                size="small"
+                sx={{
+                  backgroundColor: "#18181b",
+                  color: "#a1a1aa",
+                  border: "1px solid #27272a",
+                  fontSize: "0.6875rem",
+                  height: 20,
+                }}
+              />
+            </Box>
+            <Divider sx={{ mb: 2, borderColor: "#1e1e24" }} />
+
+            {tasks.length === 0 ? (
+              <Box sx={{ textAlign: "center", py: 4 }}>
+                <AssignmentOutlinedIcon sx={{ fontSize: 36, color: "#27272a", mb: 1 }} />
+                <AppTypography preset="bodyText" sx={{ fontWeight: 600, color: "#a1a1aa", fontSize: "0.875rem" }}>
+                  No Active Tasks
+                </AppTypography>
+                <AppTypography preset="helperText" sx={{ color: "#71717a", fontSize: "0.75rem", mt: 0.5 }}>
+                  Tasks delegated by event coordinators will update here automatically.
                 </AppTypography>
               </Box>
             ) : (
-              <Stack spacing={2.5}>
+              <Stack spacing={2}>
                 {tasks.map((task) => (
                   <Paper
                     key={task.id}
                     variant="outlined"
                     sx={{
-                      p: 2.5,
-                      borderRadius: 3,
-                      borderColor: task.status === "completed" ? "#a7f3d0" : task.status === "in_progress" ? "#bfdbfe" : "divider",
-                      bgcolor: task.status === "completed" ? "#f0fdf4" : task.status === "in_progress" ? "#f8fafc" : "background.paper",
-                      position: "relative",
-                      overflow: "hidden"
+                      p: 2,
+                      borderRadius: 2,
+                      borderColor:
+                        task.status === "completed"
+                          ? "rgba(34, 197, 94, 0.3)"
+                          : task.status === "in_progress"
+                          ? "rgba(234, 179, 8, 0.3)"
+                          : "#1e1e24",
+                      backgroundColor:
+                        task.status === "completed"
+                          ? "rgba(34, 197, 94, 0.05)"
+                          : task.status === "in_progress"
+                          ? "rgba(234, 179, 8, 0.05)"
+                          : "#09090b",
                     }}
                   >
-                    {/* Status accent side bar */}
-                    <Box
-                      sx={{
-                        position: "absolute",
-                        left: 0,
-                        top: 0,
-                        bottom: 0,
-                        width: 4,
-                        bgcolor: task.status === "completed" ? "#10b981" : task.status === "in_progress" ? "#3b82f6" : "#9ca3af"
-                      }}
-                    />
-                    
-                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "start", mb: 1, pl: 1 }}>
-                      <Box sx={{ flexGrow: 1 }}>
-                        <AppTypography preset="cardTitle" sx={{ fontWeight: 700, fontSize: "1rem" }}>
-                          {task.title}
-                        </AppTypography>
-                      </Box>
-                      <Box>
-                        {task.status === "pending" && (
-                          <Chip label="Tertunda" size="small" sx={{ bgcolor: "#f3f4f6", color: "#4b5563", fontWeight: "bold", fontSize: "0.68rem" }} />
-                        )}
-                        {task.status === "in_progress" && (
-                          <Chip label="Berjalan" size="small" color="primary" variant="outlined" sx={{ fontWeight: "bold", fontSize: "0.68rem" }} />
-                        )}
-                        {task.status === "completed" && (
-                          <Chip label="Selesai" size="small" color="success" sx={{ fontWeight: "bold", fontSize: "0.68rem" }} />
-                        )}
-                      </Box>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
+                      <AppTypography preset="cardTitle" sx={{ fontWeight: 600, fontSize: "0.9375rem", color: "#ffffff" }}>
+                        {task.title}
+                      </AppTypography>
+                      {task.status === "pending" && (
+                        <Chip
+                          label="Pending"
+                          size="small"
+                          sx={{ backgroundColor: "#18181b", color: "#a1a1aa", border: "1px solid #27272a", fontSize: "0.6875rem", height: 20 }}
+                        />
+                      )}
+                      {task.status === "in_progress" && (
+                        <Chip
+                          label="In Progress"
+                          size="small"
+                          sx={{ backgroundColor: "rgba(234, 179, 8, 0.15)", color: "#eab308", border: "1px solid rgba(234, 179, 8, 0.3)", fontSize: "0.6875rem", height: 20 }}
+                        />
+                      )}
+                      {task.status === "completed" && (
+                        <Chip
+                          label="Completed"
+                          size="small"
+                          sx={{ backgroundColor: "rgba(34, 197, 94, 0.15)", color: "#22c55e", border: "1px solid rgba(34, 197, 94, 0.3)", fontSize: "0.6875rem", height: 20 }}
+                        />
+                      )}
                     </Box>
 
                     {task.description && (
-                      <AppTypography preset="bodyText" sx={{ mt: 1, color: "text.secondary", fontSize: "0.85rem", pl: 1, whiteSpace: "pre-wrap" }}>
+                      <AppTypography preset="bodyText" sx={{ color: "#a1a1aa", fontSize: "0.8125rem", mb: 1.5, whiteSpace: "pre-wrap" }}>
                         {task.description}
                       </AppTypography>
                     )}
 
-                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 2, pt: 1.5, borderTop: "1px solid rgba(0, 0, 0, 0.04)", pl: 1 }}>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pt: 1, borderTop: "1px solid #1e1e24" }}>
                       <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                        <LocationOnIcon sx={{ fontSize: 16, color: "text.secondary", opacity: 0.6 }} />
-                        <AppTypography preset="helperText" sx={{ fontWeight: 600 }}>
-                          {task.areaName || "Area Global"}
+                        <LocationOnOutlinedIcon sx={{ fontSize: 14, color: "#71717a" }} />
+                        <AppTypography preset="helperText" sx={{ color: "#71717a", fontSize: "0.75rem" }}>
+                          {task.areaName || "Global Zone"}
                         </AppTypography>
                       </Box>
-                      
-                      <Box sx={{ display: "flex", alignItems: "center" }}>
+
+                      <Box>
                         {task.status === "pending" && (
                           <AppButton
-                            condition="edit"
-                            label="Mulai Tugas"
+                            variant="contained"
+                            color="primary"
+                            size="small"
+                            label="Start Task"
                             onClick={() => updateTaskStatus(task.id, "in_progress")}
+                            sx={{ py: 0.5, px: 1.5, fontSize: "0.75rem" }}
                           />
                         )}
                         {task.status === "in_progress" && (
                           <AppButton
-                            condition="refresh"
-                            label="Selesaikan Tugas"
+                            variant="contained"
+                            color="success"
+                            size="small"
+                            label="Mark Complete"
                             onClick={() => updateTaskStatus(task.id, "completed")}
+                            sx={{ py: 0.5, px: 1.5, fontSize: "0.75rem" }}
                           />
                         )}
                         {task.status === "completed" && (
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "#10b981", pr: 1 }}>
-                            <span style={{ fontSize: "0.9rem", fontWeight: "bold" }}>✓ Selesai</span>
-                          </Box>
+                          <AppTypography preset="helperText" sx={{ color: "#22c55e", fontWeight: 600, fontSize: "0.75rem" }}>
+                            ✓ Done
+                          </AppTypography>
                         )}
                       </Box>
                     </Box>
@@ -461,21 +468,21 @@ export default function StaffPortalPage() {
         </Card>
       </Box>
 
-      {/* ─── Bottom Bar ─── */}
+      {/* Footer */}
       <Box
         sx={{
           textAlign: "center",
           py: 2,
-          borderTop: "1px solid",
-          borderColor: "divider",
-          bgcolor: "background.paper",
+          borderTop: "1px solid #1e1e24",
+          backgroundColor: "#121215",
+          mt: "auto",
         }}
       >
         <AppTypography
           preset="helperText"
-          sx={{ fontSize: "0.6rem", opacity: 0.5, fontWeight: 600, letterSpacing: "0.08em" }}
+          sx={{ fontSize: "0.65rem", color: "#71717a", fontWeight: 500, letterSpacing: "0.05em" }}
         >
-          WORKFORCE COORDINATION SYSTEM v0.1.0
+          WORKFORCE SYSTEM — STAFF PORTAL
         </AppTypography>
       </Box>
     </Box>

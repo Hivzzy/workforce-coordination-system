@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/features/auth/store/auth.store";
 
 /**
- * Reusable production admin route guard hook.
- * Redirects unauthenticated users to /login and staff users to /portal.
+ * Reusable production staff route guard hook.
+ * Redirects unauthenticated users to /login and admin users to /dashboard.
  * Checks JWT expiration automatically.
  */
-export function useAdminGuard() {
+export function useStaffGuard() {
   const user = useAuthStore((s) => s.user);
   const hasHydrated = useAuthStore((s) => s.hasHydrated);
   const isTokenExpired = useAuthStore((s) => s.isTokenExpired);
@@ -22,12 +22,12 @@ export function useAdminGuard() {
     if (!user || isTokenExpired()) {
       logout();
       router.push("/login?expired=true");
-    } else if (user.role !== "admin") {
-      router.push("/portal");
+    } else if (user.role === "admin") {
+      router.push("/dashboard");
     }
   }, [user, hasHydrated, isTokenExpired, logout, router]);
 
-  const isReady = hasHydrated && !!user && user.role === "admin" && !isTokenExpired();
+  const isReady = hasHydrated && !!user && user.role === "staff" && !isTokenExpired();
 
   return { isReady, user: isReady ? user : null };
 }

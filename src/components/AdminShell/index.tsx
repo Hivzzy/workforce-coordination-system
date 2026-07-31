@@ -30,6 +30,8 @@ import AssignmentIcon from "@mui/icons-material/Assignment";
 import AppTypography from "../AppTypography";
 import AppButton from "../AppButton";
 
+import { logout as serviceLogout } from "@/features/auth/services/auth.services";
+
 const DRAWER_WIDTH = 260;
 
 interface AdminShellProps {
@@ -39,7 +41,7 @@ interface AdminShellProps {
 export default function AdminShell({ children }: AdminShellProps) {
   const user = useAuthStore((state) => state.user);
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
-  const logout = useAuthStore((state) => state.logout);
+  const isTokenExpired = useAuthStore((state) => state.isTokenExpired);
   
   const router = useRouter();
   const pathname = usePathname();
@@ -52,28 +54,29 @@ export default function AdminShell({ children }: AdminShellProps) {
   useEffect(() => {
     if (!hasHydrated) return;
 
-    if (!user) {
-      router.push("/login");
+    if (!user || isTokenExpired()) {
+      serviceLogout();
+      router.push("/login?expired=true");
     } else if (user.role !== "admin") {
       // Redirect staff or unauthorized roles to their portal
       router.push("/portal");
     }
-  }, [user, hasHydrated, router]);
+  }, [user, hasHydrated, isTokenExpired, router]);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
   };
 
   const menuItems = [
-    { text: "Dashboard", icon: <DashboardIcon />, path: "/dashboard" },
-    { text: "Staff Management", icon: <PeopleIcon />, path: "/staff" },
-    { text: "Area Management", icon: <LayersIcon />, path: "/area" },
-    { text: "Task Management", icon: <AssignmentIcon />, path: "/tasks" },
+    { text: "Dashboard & Refill Monitor", icon: <DashboardIcon />, path: "/dashboard" },
+    { text: "User Management", icon: <PeopleIcon />, path: "/staff" },
+    { text: "Penugasan Kru", icon: <AssignmentIcon />, path: "/tasks" },
+    { text: "Area Management (CRUD Area)", icon: <LayersIcon />, path: "/area" },
     { text: "Design System", icon: <PaletteIcon />, path: "/design-system" },
   ];
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await serviceLogout();
     router.push("/login");
   };
 
@@ -94,7 +97,7 @@ export default function AdminShell({ children }: AdminShellProps) {
       >
         <CircularProgress size={50} thickness={4} color="primary" />
         <AppTypography preset="helperText" color="text.secondary">
-          Loading workforce credentials...
+          Memuat kredensial Kembang Tasik...
         </AppTypography>
       </Box>
     );
@@ -113,68 +116,79 @@ export default function AdminShell({ children }: AdminShellProps) {
       >
         <Avatar
           sx={{
-            bgcolor: "primary.main",
-            backgroundImage: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
-            width: 40,
-            height: 40,
-            fontWeight: "bold",
+            backgroundColor: "#18181b",
+            color: "#ffffff",
+            border: "1px solid #27272a",
+            width: 36,
+            height: 36,
+            fontWeight: 700,
+            fontSize: "0.875rem",
+            position: "relative",
           }}
         >
-          W
+          KT
         </Avatar>
         <Box>
-          <AppTypography
-            preset="cardTitle"
-            sx={{ fontWeight: 800, color: "text.primary", lineHeight: 1.2 }}
-          >
-            Workforce
-          </AppTypography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+            <AppTypography
+              preset="cardTitle"
+              sx={{ fontWeight: 700, color: "#ffffff", lineHeight: 1.2, fontSize: "0.95rem" }}
+            >
+              Kembang Tasik
+            </AppTypography>
+            <Box
+              sx={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                backgroundColor: "#eab308",
+              }}
+            />
+          </Box>
           <AppTypography
             preset="helperText"
-            sx={{ color: "primary.main", fontWeight: "bold", letterSpacing: "0.05em" }}
+            sx={{ color: "#a1a1aa", fontSize: "0.6875rem", fontWeight: 500 }}
           >
-            ADMIN PORTAL
+            WO & Catering Admin
           </AppTypography>
         </Box>
       </Box>
-      <Divider sx={{ opacity: 0.6 }} />
+      <Divider sx={{ borderColor: "#1e1e24" }} />
 
       {/* Navigation Links */}
-      <List sx={{ px: 2, py: 3, flexGrow: 1 }}>
+      <List sx={{ px: 1.5, py: 2, flexGrow: 1 }}>
         {menuItems.map((item) => {
           const isActive = pathname === item.path;
           return (
-            <ListItem key={item.text} disablePadding sx={{ mb: 1 }}>
+            <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
               <ListItemButton
                 onClick={() => {
                   router.push(item.path);
                   if (isMobile) setMobileOpen(false);
                 }}
                 sx={{
-                  borderRadius: 2,
-                  px: 2,
-                  py: 1.2,
-                  color: isActive ? "primary.main" : "text.secondary",
-                  backgroundColor: isActive ? "action.selected" : "transparent",
-                  borderLeft: isActive ? "3px solid" : "3px solid transparent",
-                  borderImage: isActive
-                    ? "linear-gradient(180deg, #6366f1, #06b6d4) 1"
-                    : "none",
+                  borderRadius: 1.5,
+                  px: 1.5,
+                  py: 1,
+                  color: isActive ? "#ffffff" : "#a1a1aa",
+                  backgroundColor: isActive ? "#18181b" : "transparent",
+                  border: isActive ? "1px solid #27272a" : "1px solid transparent",
                   "&:hover": {
-                    backgroundColor: "action.hover",
-                    color: "text.primary",
+                    backgroundColor: "#18181b",
+                    color: "#ffffff",
                     "& .MuiListItemIcon-root": {
-                      color: "text.primary",
+                      color: "#eab308",
                     },
                   },
-                  transition: "all 0.2s ease",
+                  transition: "all 0.15s ease",
                 }}
               >
                 <ListItemIcon
                   sx={{
-                    minWidth: 40,
-                    color: isActive ? "primary.main" : "text.secondary",
-                    transition: "color 0.2s ease",
+                    minWidth: 32,
+                    color: isActive ? "#eab308" : "#71717a",
+                    fontSize: 20,
+                    transition: "color 0.15s ease",
                   }}
                 >
                   {item.icon}
@@ -184,8 +198,9 @@ export default function AdminShell({ children }: AdminShellProps) {
                     <AppTypography
                       preset="bodyText"
                       sx={{
-                        fontWeight: isActive ? 700 : 500,
-                        fontSize: "0.95rem",
+                        fontWeight: isActive ? 600 : 500,
+                        fontSize: "0.875rem",
+                        color: isActive ? "#ffffff" : "inherit",
                       }}
                     >
                       {item.text}
@@ -198,7 +213,7 @@ export default function AdminShell({ children }: AdminShellProps) {
         })}
       </List>
 
-      <Divider sx={{ opacity: 0.6 }} />
+      <Divider sx={{ borderColor: "#1e1e24" }} />
 
       {/* Bottom Profile & Logout Area */}
       <Box sx={{ p: 3, display: "flex", flexDirection: "column", gap: 2 }}>
