@@ -50,6 +50,9 @@ backend/target/
 
 # external file
 *.zip
-docs/*
+docs/*.pdf
+docs/*.png
+docs/*.svg
+!docs/*.md
 
 
