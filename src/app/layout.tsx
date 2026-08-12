@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
 import { MuiThemeProvider } from "./theme-provider";
@@ -11,7 +11,20 @@ const poppins = Poppins({
 
 export const metadata: Metadata = {
   title: "Workforce Coordination System",
-  description: "A premium event coordination management system.",
+  description: "Enterprise Field Workforce Coordination & Emergency Alert System",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Workforce System",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0F172A",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({

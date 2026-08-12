@@ -21,6 +21,7 @@ import AdminShell from "@/components/AdminShell";
 import { useAdminGuard } from "@/hooks/useAdminGuard";
 import { apiFetch } from "@/utils/api-client";
 import { globalWebSocket } from "@/utils/websocket-client";
+import { playEmergencyAlarm } from "@/utils/audio-alert";
 
 interface SystemStateResponse {
   emergencyActive: boolean;
@@ -139,6 +140,9 @@ export default function DashboardPage() {
 
   const toggleEmergency = async () => {
     const nextState = !emergencyActive;
+    if (nextState) {
+      playEmergencyAlarm();
+    }
     prevEmergencyRef.current = nextState;
     setEmergencyActive(nextState);
     addLog(

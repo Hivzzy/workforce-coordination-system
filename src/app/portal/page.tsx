@@ -30,6 +30,8 @@ import { logout as serviceLogout } from "@/features/auth/services/auth.services"
 import { apiFetch } from "@/utils/api-client";
 import { globalWebSocket } from "@/utils/websocket-client";
 
+import { playEmergencyAlarm } from "@/utils/audio-alert";
+
 export default function StaffPortalPage() {
   const { isReady } = useStaffGuard();
   const user = useAuthStore((state) => state.user);
@@ -53,6 +55,9 @@ export default function StaffPortalPage() {
       try {
         const data = await apiFetch<{ emergencyActive: boolean; helpStatus: string; refillStatus: string }>("/system-state");
         if (data) {
+          if (data.emergencyActive && !emergencyActive) {
+            playEmergencyAlarm();
+          }
           setEmergencyActive(data.emergencyActive);
           setHelpStatus(data.helpStatus !== "idle" ? "requested" : "idle");
           setRefillStatus(data.refillStatus !== "idle" ? "requested" : "idle");
@@ -75,6 +80,9 @@ export default function StaffPortalPage() {
           const payload = JSON.parse(msg.body);
           if (payload.active !== undefined) {
             setEmergencyActive(payload.active);
+            if (payload.active) {
+              playEmergencyAlarm();
+            }
           }
         } catch (e) {
           console.error("Error parsing emergency socket in portal:", e);
