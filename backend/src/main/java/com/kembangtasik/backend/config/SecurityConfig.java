@@ -2,7 +2,7 @@ package com.kembangtasik.backend.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kembangtasik.backend.dto.ErrorResponse;
-import com.kembangtasik.backend.security.JwtAuthenticationFilter;
+import com.kembangtasik.backend.security.SessionAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -30,11 +30,11 @@ import java.util.List;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final SessionAuthenticationFilter sessionAuthenticationFilter;
     private final ObjectMapper objectMapper;
 
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, ObjectMapper objectMapper) {
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    public SecurityConfig(SessionAuthenticationFilter sessionAuthenticationFilter, ObjectMapper objectMapper) {
+        this.sessionAuthenticationFilter = sessionAuthenticationFilter;
         this.objectMapper = objectMapper;
     }
 
@@ -60,7 +60,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/**").permitAll()
                 .anyRequest().permitAll()
             )
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(sessionAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -75,7 +75,7 @@ public class SecurityConfig {
                     .timestamp(LocalDateTime.now())
                     .status(HttpStatus.UNAUTHORIZED.value())
                     .error("Unauthorized")
-                    .message(authException.getMessage() != null ? authException.getMessage() : "Kredensial otentikasi tidak valid atau expired")
+                    .message(authException.getMessage() != null ? authException.getMessage() : "Sesi otentikasi Redis tidak valid atau telah expired")
                     .path(request.getRequestURI())
                     .build();
 

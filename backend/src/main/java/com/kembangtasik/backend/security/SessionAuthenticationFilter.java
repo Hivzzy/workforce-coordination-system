@@ -18,33 +18,30 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 
 @Component
-public class JwtAuthenticationFilter extends OncePerRequestFilter {
+public class SessionAuthenticationFilter extends OncePerRequestFilter {
 
-    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
-    public static final String COOKIE_NAME = "jwt_token";
+    private static final Logger log = LoggerFactory.getLogger(SessionAuthenticationFilter.class);
+    public static final String COOKIE_NAME = "session_id";
 
-    private final JwtTokenProvider tokenProvider;
+    private final RedisSessionService redisSessionService;
     private final CustomUserDetailsService customUserDetailsService;
-    private final TokenBlacklistService tokenBlacklistService;
 
-    public JwtAuthenticationFilter(JwtTokenProvider tokenProvider, CustomUserDetailsService customUserDetailsService, TokenBlacklistService tokenBlacklistService) {
-        this.tokenProvider = tokenProvider;
+    public SessionAuthenticationFilter(RedisSessionService redisSessionService, CustomUserDetailsService customUserDetailsService) {
+        this.redisSessionService = redisSessionService;
         this.customUserDetailsService = customUserDetailsService;
-        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         try {
-            String jwt = getJwtFromRequest(request);
+            String sessionId = getSessionIdFromRequest(request);
 
-            if (StringUtils.hasText(jwt)) {
-                if (tokenBlacklistService.isBlacklisted(jwt)) {
-                    log.warn("Attempted use of blacklisted JWT token");
-                } else if (tokenProvider.validateToken(jwt)) {
-                    String userEmail = tokenProvider.getEmailFromToken(jwt);
-                    UserDetails userDetails = customUserDetailsService.loadUserByUsername(userEmail);
+            if (StringUtils.hasText(sessionId)) {
+                RedisSessionService.SessionData session = redisSessionService.getSession(sessionId);
+
+                if (session != null && !session.isExpired()) {
+                    UserDetails userDetails = customUserDetailsService.loadUserByUsername(session.getEmail());
 
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                             userDetails, null, userDetails.getAuthorities()
@@ -52,19 +49,25 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                     SecurityContextHolder.getContext().setAuthentication(authentication);
+                } else {
+                    log.debug("Session ID invalid or expired: {}", sessionId);
                 }
             }
         } catch (Exception ex) {
-            log.error("Could not set user authentication in security context", ex);
+            log.error("Could not set user authentication in security context from session", ex);
         }
 
         filterChain.doFilter(request, response);
     }
 
-    public static String getJwtFromRequest(HttpServletRequest request) {
+    public static String getSessionIdFromRequest(HttpServletRequest request) {
         if (request.getCookies() != null) {
             for (Cookie cookie : request.getCookies()) {
                 if (COOKIE_NAME.equals(cookie.getName()) && StringUtils.hasText(cookie.getValue())) {
+                    return cookie.getValue();
+                }
+                // Backward compatibility check for jwt_token cookie name
+                if ("jwt_token".equals(cookie.getName()) && StringUtils.hasText(cookie.getValue())) {
                     return cookie.getValue();
                 }
             }
@@ -73,6 +76,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String bearerToken = request.getHeader("Authorization");
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7);
+        }
+
+        String xSessionHeader = request.getHeader("X-Session-ID");
+        if (StringUtils.hasText(xSessionHeader)) {
+            return xSessionHeader.trim();
         }
 
         return null;

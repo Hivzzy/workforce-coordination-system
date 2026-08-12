@@ -7,8 +7,14 @@ import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<UserEntity, String> {
-    Optional<UserEntity> findByEmailAndPassword(String email, String password);
-    Optional<UserEntity> findByEmail(String email);
-    Optional<UserEntity> findByStaffId(String staffId);
+    Optional<UserEntity> findFirstByEmailAndPassword(String email, String password);
+    Optional<UserEntity> findFirstByEmail(String email);
+    default Optional<UserEntity> findByEmail(String email) {
+        return findFirstByEmail(email);
+    }
+    Optional<UserEntity> findFirstByStaffId(String staffId);
+    default Optional<UserEntity> findByStaffId(String staffId) {
+        return findFirstByStaffId(staffId);
+    }
     void deleteByStaffId(String staffId);
 }

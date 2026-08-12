@@ -2,7 +2,7 @@ package com.kembangtasik.backend.controller;
 
 import com.kembangtasik.backend.dto.LoginRequest;
 import com.kembangtasik.backend.dto.LoginResponse;
-import com.kembangtasik.backend.security.JwtAuthenticationFilter;
+import com.kembangtasik.backend.security.SessionAuthenticationFilter;
 import com.kembangtasik.backend.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -31,7 +31,7 @@ public class AuthController {
 
         if (result.isSuccess()) {
             LoginResponse response = result.getResponse();
-            ResponseCookie jwtCookie = ResponseCookie.from(JwtAuthenticationFilter.COOKIE_NAME, response.getAccessToken())
+            ResponseCookie sessionCookie = ResponseCookie.from(SessionAuthenticationFilter.COOKIE_NAME, response.getAccessToken())
                     .httpOnly(true)
                     .secure(false) // Set to true in HTTPS production
                     .path("/")
@@ -40,7 +40,7 @@ public class AuthController {
                     .build();
 
             return ResponseEntity.ok()
-                    .header(HttpHeaders.SET_COOKIE, jwtCookie.toString())
+                    .header(HttpHeaders.SET_COOKIE, sessionCookie.toString())
                     .body(response);
         }
 
@@ -53,10 +53,10 @@ public class AuthController {
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletRequest request) {
-        String token = JwtAuthenticationFilter.getJwtFromRequest(request);
-        Map<String, String> logoutResult = authService.logout(token);
+        String sessionId = SessionAuthenticationFilter.getSessionIdFromRequest(request);
+        Map<String, String> logoutResult = authService.logout(sessionId);
 
-        ResponseCookie deleteCookie = ResponseCookie.from(JwtAuthenticationFilter.COOKIE_NAME, "")
+        ResponseCookie deleteCookie = ResponseCookie.from(SessionAuthenticationFilter.COOKIE_NAME, "")
                 .httpOnly(true)
                 .path("/")
                 .maxAge(0)
@@ -72,12 +72,12 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(HttpServletRequest request) {
-        String token = JwtAuthenticationFilter.getJwtFromRequest(request);
-        LoginResponse userResponse = authService.getCurrentUser(token);
+        String sessionId = SessionAuthenticationFilter.getSessionIdFromRequest(request);
+        LoginResponse userResponse = authService.getCurrentUser(sessionId);
 
         if (userResponse != null) {
             return ResponseEntity.ok(userResponse);
         }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Otentikasi tidak valid"));
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Sesi otentikasi tidak valid atau telah kedaluwarsa"));
     }
 }

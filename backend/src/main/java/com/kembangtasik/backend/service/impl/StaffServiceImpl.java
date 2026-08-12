@@ -27,7 +27,7 @@ public class StaffServiceImpl implements StaffService {
     public List<StaffDto> getAllStaffs() {
         List<StaffEntity> staffs = staffRepository.findAll();
         return staffs.stream().map(s -> {
-            Optional<UserEntity> u = userRepository.findByStaffId(s.getId());
+            Optional<UserEntity> u = userRepository.findFirstByStaffId(s.getId());
             return StaffDto.builder()
                     .id(s.getId())
                     .name(s.getName())
@@ -81,7 +81,7 @@ public class StaffServiceImpl implements StaffService {
         staff.setAssignedAreaId(dto.getAssignedAreaId());
         staffRepository.save(staff);
 
-        Optional<UserEntity> userOpt = userRepository.findByStaffId(id);
+        Optional<UserEntity> userOpt = userRepository.findFirstByStaffId(id);
         if (userOpt.isPresent()) {
             UserEntity user = userOpt.get();
             if (dto.getEmail() != null) user.setEmail(dto.getEmail());

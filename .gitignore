@@ -48,3 +48,8 @@ graphify-out/
 target/
 backend/target/
 
+# external file
+*.zip
+docs/*
+
+
