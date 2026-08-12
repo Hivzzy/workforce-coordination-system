@@ -6,11 +6,8 @@ import { useAreaStore } from "@/features/area/store/area.store";
 import {
   Grid,
   Card,
-  CardContent,
   Box,
-  Divider,
   Paper,
-  Chip,
   Button,
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -23,6 +20,7 @@ import AppTypography from "@/components/AppTypography";
 import AdminShell from "@/components/AdminShell";
 import { useAdminGuard } from "@/hooks/useAdminGuard";
 import { apiFetch } from "@/utils/api-client";
+import { globalWebSocket } from "@/utils/websocket-client";
 
 interface SystemStateResponse {
   emergencyActive: boolean;
@@ -32,15 +30,15 @@ interface SystemStateResponse {
 
 export default function DashboardPage() {
   const { isReady } = useAdminGuard();
-  const { staffs, fetchStaffs } = useStaffStore();
-  const { areas, fetchAreas } = useAreaStore();
+  const { fetchStaffs } = useStaffStore();
+  const { fetchAreas } = useAreaStore();
 
   const [emergencyActive, setEmergencyActive] = useState(false);
   const [helpStatus, setHelpStatus] = useState("idle");
   const [refillStatus, setRefillStatus] = useState("idle");
   const [logs, setLogs] = useState<string[]>([
+    "⚡ Real-Time WebSocket Connected (/ws-coordination)",
     "🏁 System initialized. Monitoring live workforce status.",
-    "📋 Ready for coordination events and live alerts.",
   ]);
 
   const prevEmergencyRef = useRef(false);
@@ -62,34 +60,12 @@ export default function DashboardPage() {
       try {
         const data = await apiFetch<SystemStateResponse>("/system-state");
         if (data) {
-          if (data.emergencyActive !== prevEmergencyRef.current) {
-            addLog(
-              data.emergencyActive
-                ? "🚨 EMERGENCY: Dispatched all field crew to Gathering Area."
-                : "✅ RESOLVED: Emergency dispatch cleared."
-            );
-            prevEmergencyRef.current = data.emergencyActive;
-          }
-          if (data.helpStatus !== prevHelpRef.current) {
-            addLog(
-              data.helpStatus !== "idle"
-                ? `⚠️ HELP REQUEST: Assistance requested at Area: ${data.helpStatus}.`
-                : "✅ RESOLVED: Assistance call cleared."
-            );
-            prevHelpRef.current = data.helpStatus;
-          }
-          if (data.refillStatus !== prevRefillRef.current) {
-            addLog(
-              data.refillStatus !== "idle"
-                ? `🔄 REFILL REQUEST: Catering refill requested at Area: ${data.refillStatus}.`
-                : "✅ RESOLVED: Refill request completed."
-            );
-            prevRefillRef.current = data.refillStatus;
-          }
-
           setEmergencyActive(data.emergencyActive);
           setHelpStatus(data.helpStatus);
           setRefillStatus(data.refillStatus);
+          prevEmergencyRef.current = data.emergencyActive;
+          prevHelpRef.current = data.helpStatus;
+          prevRefillRef.current = data.refillStatus;
         }
       } catch (err) {
         console.error("Failed to fetch system state:", err);
@@ -97,8 +73,68 @@ export default function DashboardPage() {
     };
 
     fetchSystemState();
-    const interval = setInterval(fetchSystemState, 3000);
-    return () => clearInterval(interval);
+
+    // ⚡ Connect to WebSocket for instant STOMP updates (< 50ms)
+    globalWebSocket.connect(() => {
+      // Subscribe to Emergency Alert topic
+      globalWebSocket.subscribe("/topic/emergency", (msg) => {
+        try {
+          const payload = JSON.parse(msg.body);
+          if (payload.active !== undefined) {
+            setEmergencyActive(payload.active);
+            addLog(
+              payload.active
+                ? "🚨 STOMP EMERGENCY: Dispatched all field crew to Gathering Area."
+                : "✅ STOMP RESOLVED: Emergency dispatch cleared."
+            );
+          }
+        } catch (e) {
+          console.error("Error parsing emergency socket payload:", e);
+        }
+      });
+
+      // Subscribe to Signal topic
+      globalWebSocket.subscribe("/topic/signals", (msg) => {
+        try {
+          const payload = JSON.parse(msg.body);
+          if (payload.signalType === "HELP") {
+            setHelpStatus(payload.areaName);
+            addLog(`⚠️ STOMP HELP REQUEST: Signal received for Area: ${payload.areaName}`);
+          } else if (payload.signalType === "REFILL") {
+            setRefillStatus(payload.areaName);
+            addLog(`🔄 STOMP REFILL REQUEST: Catering refill requested at Area: ${payload.areaName}`);
+          }
+        } catch (e) {
+          console.error("Error parsing signal socket payload:", e);
+        }
+      });
+
+      // Subscribe to System State topic
+      globalWebSocket.subscribe("/topic/system-state", (msg) => {
+        try {
+          const payload = JSON.parse(msg.body);
+          if (payload.emergencyActive !== undefined) setEmergencyActive(payload.emergencyActive);
+          if (payload.helpStatus !== undefined) setHelpStatus(payload.helpStatus);
+          if (payload.refillStatus !== undefined) setRefillStatus(payload.refillStatus);
+        } catch (e) {
+          console.error("Error parsing system-state payload:", e);
+        }
+      });
+
+      // Subscribe to Operations Log topic
+      globalWebSocket.subscribe("/topic/logs", (msg) => {
+        try {
+          const payload = JSON.parse(msg.body);
+          if (payload.message) addLog(payload.message);
+        } catch (e) {
+          console.error("Error parsing log payload:", e);
+        }
+      });
+    });
+
+    return () => {
+      // Keep socket open or disconnect on unmount
+    };
   }, [fetchStaffs, fetchAreas]);
 
   const toggleEmergency = async () => {
@@ -152,7 +188,7 @@ export default function DashboardPage() {
 
   return (
     <AdminShell>
-      {/* Top Header & System Status Card (Exact Figma Dashboard.svg) */}
+      {/* Top Header & System Status Card */}
       <Grid container spacing={3} sx={{ mb: 4, alignItems: "center" }}>
         <Grid size={{ xs: 12, md: 8 }}>
           <AppTypography
@@ -171,7 +207,7 @@ export default function DashboardPage() {
             preset="helperText"
             sx={{ color: "#64748B", fontSize: "0.925rem", maxWidth: 650 }}
           >
-            Simulasikan aksi cepat dari Admin (Emergensi) maupun permintaan bantuan serta isi ulang logistik dari Staff di lapangan.
+            Simulasikan aksi cepat dari Admin (Emergensi) maupun permintaan bantuan serta isi ulang logistik dari Staff di lapangan secara Real-Time WebSocket.
           </AppTypography>
         </Grid>
 
@@ -216,7 +252,7 @@ export default function DashboardPage() {
         </Grid>
       </Grid>
 
-      {/* Main Operations Cards (Figma Dashboard.svg layout) */}
+      {/* Main Operations Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         {/* Emergency Trigger Card (Red Box) */}
         <Grid size={{ xs: 12, md: 4 }}>
@@ -415,7 +451,7 @@ export default function DashboardPage() {
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
           <TerminalOutlinedIcon sx={{ color: "#FBC02D", fontSize: 22 }} />
           <AppTypography preset="sectionTitle" sx={{ fontWeight: 800, fontSize: "1.15rem", color: "#0F172A" }}>
-            Live Operations Feed
+            Live Operations Feed (Real-Time WebSocket)
           </AppTypography>
         </Box>
 

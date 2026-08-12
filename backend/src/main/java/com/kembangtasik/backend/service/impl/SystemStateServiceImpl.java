@@ -3,6 +3,7 @@ package com.kembangtasik.backend.service.impl;
 import com.kembangtasik.backend.model.SystemStateEntity;
 import com.kembangtasik.backend.repository.SystemStateRepository;
 import com.kembangtasik.backend.service.SystemStateService;
+import com.kembangtasik.backend.service.WebSocketPublisherService;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -13,9 +14,11 @@ import java.util.Optional;
 public class SystemStateServiceImpl implements SystemStateService {
 
     private final SystemStateRepository systemStateRepository;
+    private final WebSocketPublisherService webSocketPublisherService;
 
-    public SystemStateServiceImpl(SystemStateRepository systemStateRepository) {
+    public SystemStateServiceImpl(SystemStateRepository systemStateRepository, WebSocketPublisherService webSocketPublisherService) {
         this.systemStateRepository = systemStateRepository;
+        this.webSocketPublisherService = webSocketPublisherService;
     }
 
     @Override
@@ -41,15 +44,23 @@ public class SystemStateServiceImpl implements SystemStateService {
     @Override
     public Map<String, Object> updateSystemState(Map<String, String> body) {
         if (body.containsKey("emergencyActive")) {
-            systemStateRepository.save(new SystemStateEntity("emergency_active", body.get("emergencyActive")));
+            boolean active = Boolean.parseBoolean(body.get("emergencyActive"));
+            systemStateRepository.save(new SystemStateEntity("emergency_active", String.valueOf(active)));
+            webSocketPublisherService.sendEmergencyAlert(active, active ? "🚨 DARURAT GATHERING AREA ACTIVE!" : "Emergency Call Cleared");
         }
         if (body.containsKey("helpStatus")) {
-            systemStateRepository.save(new SystemStateEntity("help_status", body.get("helpStatus")));
+            String status = body.get("helpStatus");
+            systemStateRepository.save(new SystemStateEntity("help_status", status));
+            webSocketPublisherService.sendSignal("HELP", status);
         }
         if (body.containsKey("refillStatus")) {
-            systemStateRepository.save(new SystemStateEntity("refill_status", body.get("refillStatus")));
+            String status = body.get("refillStatus");
+            systemStateRepository.save(new SystemStateEntity("refill_status", status));
+            webSocketPublisherService.sendSignal("REFILL", status);
         }
 
-        return getSystemState();
+        Map<String, Object> updatedState = getSystemState();
+        webSocketPublisherService.sendSystemStateUpdate(updatedState);
+        return updatedState;
     }
 }
