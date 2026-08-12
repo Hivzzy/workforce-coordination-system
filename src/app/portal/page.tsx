@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/features/auth/store/auth.store";
 import { useStaffStore } from "@/features/staff/store/staff.store";
 import { useAreaStore } from "@/features/area/store/area.store";
-import { useTaskStore } from "@/features/task/store/task.store";
+import { useTaskStore, Task } from "@/features/task/store/task.store";
 import {
   Box,
   Card,
@@ -18,10 +18,13 @@ import {
   FormControl,
   Select,
   MenuItem,
+  Button,
 } from "@mui/material";
 import LogoutIcon from "@mui/icons-material/Logout";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import VisibilityOffOutlinedIcon from "@mui/icons-material/VisibilityOffOutlined";
 import AppTypography from "@/components/AppTypography";
 import HelpButton from "@/components/HelpButton";
 import RefillButton from "@/components/RefillButton";
@@ -43,6 +46,7 @@ export default function StaffPortalPage() {
   const [emergencyActive, setEmergencyActive] = useState(false);
   const [helpStatus, setHelpStatus] = useState<"idle" | "requested">("idle");
   const [refillStatus, setRefillStatus] = useState<"idle" | "requested">("idle");
+  const [showCompleted, setShowCompleted] = useState(false);
 
   const staffIdRef = useRef<string | null>(null);
 
@@ -101,7 +105,7 @@ export default function StaffPortalPage() {
       });
     });
 
-    // 🔄 Continuous Fallback Polling (Every 2 seconds) so tasks ALWAYS sync automatically with 0 manual refresh needed!
+    // 🔄 Continuous Fallback Polling (Every 2 seconds) so tasks ALWAYS sync automatically
     const interval = setInterval(syncPortalData, 2000);
     return () => clearInterval(interval);
 
@@ -145,6 +149,28 @@ export default function StaffPortalPage() {
       console.error("Failed to sync refill request:", err);
     }
   };
+
+  // 1. Sort Tasks: "in_progress" (Dikerjakan) at top -> "pending" (Tertunda) -> "completed" (Selesai) bottom. Newest first.
+  const statusPriority: Record<Task["status"], number> = {
+    in_progress: 1, // 🥇 Top: Dikerjakan
+    pending: 2,     // 🥈 Middle: Tertunda
+    completed: 3,   // 🥉 Bottom: Selesai
+  };
+
+  const sortedTasks = [...tasks].sort((a, b) => {
+    const priorityA = statusPriority[a.status] || 99;
+    const priorityB = statusPriority[b.status] || 99;
+
+    if (priorityA !== priorityB) {
+      return priorityA - priorityB;
+    }
+    // Secondary sort: Newest task at the top
+    return b.id.localeCompare(a.id);
+  });
+
+  // 2. Filter out completed tasks unless user toggles "showCompleted" to prevent cluttering the staff portal
+  const completedCount = tasks.filter((t) => t.status === "completed").length;
+  const activeTasks = sortedTasks.filter((t) => (showCompleted ? true : t.status !== "completed"));
 
   return (
     <Box
@@ -295,33 +321,74 @@ export default function StaffPortalPage() {
 
         {/* Tasks List Section */}
         <Box>
-          <AppTypography preset="sectionTitle" sx={{ fontWeight: 800, fontSize: "1.25rem", color: "#0F172A", mb: 1.5 }}>
-            Tugas Mandiri Saya
-          </AppTypography>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
+            <AppTypography preset="sectionTitle" sx={{ fontWeight: 800, fontSize: "1.25rem", color: "#0F172A" }}>
+              Tugas Mandiri Saya
+            </AppTypography>
 
-          {tasks.length === 0 ? (
+            {completedCount > 0 && (
+              <Button
+                size="small"
+                onClick={() => setShowCompleted(!showCompleted)}
+                startIcon={showCompleted ? <VisibilityOffOutlinedIcon fontSize="small" /> : <VisibilityOutlinedIcon fontSize="small" />}
+                sx={{
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  color: "#64748B",
+                  textTransform: "none",
+                  py: 0.5,
+                  px: 1,
+                  borderRadius: "6px",
+                  backgroundColor: "#E2E8F0",
+                  "&:hover": { backgroundColor: "#CBD5E1" },
+                }}
+              >
+                {showCompleted ? "Sembunyikan Selesai" : `Lihat Selesai (${completedCount})`}
+              </Button>
+            )}
+          </Box>
+
+          {activeTasks.length === 0 ? (
             <Card sx={{ borderRadius: "12px", p: 3, textAlign: "center", border: "1px solid #E2E8F0", backgroundColor: "#ffffff" }}>
               <AppTypography preset="bodyText" sx={{ color: "#64748B", fontWeight: 600, fontSize: "0.9rem" }}>
-                Belum ada tugas mandiri yang diberikan.
+                {completedCount > 0 && !showCompleted
+                  ? `Semua ${completedCount} tugas telah selesai!`
+                  : "Belum ada tugas mandiri yang diberikan."}
               </AppTypography>
             </Card>
           ) : (
             <Stack spacing={2}>
-              {tasks.map((task) => (
+              {activeTasks.map((task) => (
                 <Card
                   key={task.id}
                   sx={{
                     borderRadius: "12px",
-                    border: "1px solid #E2E8F0",
+                    border: task.status === "in_progress" ? "2px solid #F97316" : "1px solid #E2E8F0",
                     backgroundColor: "#ffffff",
-                    boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+                    boxShadow: task.status === "in_progress" ? "0 4px 12px rgba(249, 115, 22, 0.15)" : "0 2px 8px rgba(0,0,0,0.03)",
                   }}
                 >
                   <CardContent sx={{ p: 2.5 }}>
                     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
-                      <AppTypography preset="sectionTitle" sx={{ fontWeight: 700, fontSize: "1.05rem", color: "#0F172A" }}>
-                        {task.title}
-                      </AppTypography>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        {task.status === "in_progress" && (
+                          <Chip
+                            label="UTAMA"
+                            size="small"
+                            sx={{
+                              backgroundColor: "#F97316",
+                              color: "#ffffff",
+                              fontWeight: 800,
+                              fontSize: "0.65rem",
+                              height: 18,
+                              borderRadius: "4px",
+                            }}
+                          />
+                        )}
+                        <AppTypography preset="sectionTitle" sx={{ fontWeight: 700, fontSize: "1.05rem", color: "#0F172A" }}>
+                          {task.title}
+                        </AppTypography>
+                      </Box>
                       
                       <FormControl size="small">
                         <Select
@@ -342,9 +409,9 @@ export default function StaffPortalPage() {
                             "& .MuiSvgIcon-root": { color: "#ffffff" },
                           }}
                         >
-                          <MenuItem value="pending">Tertunda</MenuItem>
-                          <MenuItem value="in_progress">Dikerjakan</MenuItem>
-                          <MenuItem value="completed">Selesai</MenuItem>
+                          <MenuItem value="in_progress">⚡ Dikerjakan</MenuItem>
+                          <MenuItem value="pending">⏳ Tertunda</MenuItem>
+                          <MenuItem value="completed">✅ Selesai</MenuItem>
                         </Select>
                       </FormControl>
                     </Box>
