@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/features/auth/store/auth.store";
 import { useStaffStore } from "@/features/staff/store/staff.store";
@@ -29,7 +29,6 @@ import { useStaffGuard } from "@/hooks/useStaffGuard";
 import { logout as serviceLogout } from "@/features/auth/services/auth.services";
 import { apiFetch } from "@/utils/api-client";
 import { globalWebSocket } from "@/utils/websocket-client";
-
 import { playEmergencyAlarm } from "@/utils/audio-alert";
 
 export default function StaffPortalPage() {
@@ -45,13 +44,16 @@ export default function StaffPortalPage() {
   const [helpStatus, setHelpStatus] = useState<"idle" | "requested">("idle");
   const [refillStatus, setRefillStatus] = useState<"idle" | "requested">("idle");
 
+  const staffIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (!isReady || !user) return;
+    staffIdRef.current = user.staffId || null;
 
     fetchStaffs();
     fetchAreas();
 
-    const fetchSystemState = async () => {
+    const syncPortalData = async () => {
       try {
         const data = await apiFetch<{ emergencyActive: boolean; helpStatus: string; refillStatus: string }>("/system-state");
         if (data) {
@@ -66,14 +68,16 @@ export default function StaffPortalPage() {
         console.error("Failed to fetch system state in portal:", err);
       }
 
-      if (user?.staffId) {
-        fetchTasks(user.staffId);
+      const currentStaffId = staffIdRef.current || user?.staffId;
+      if (currentStaffId) {
+        fetchTasks(currentStaffId);
       }
     };
 
-    fetchSystemState();
+    // Initial sync
+    syncPortalData();
 
-    // ⚡ Connect to WebSocket for instant real-time Emergency dispatch notifications (< 50ms)
+    // ⚡ Real-time WebSocket Subscription for Emergency & Tasks (< 50ms)
     globalWebSocket.connect(() => {
       globalWebSocket.subscribe("/topic/emergency", (msg) => {
         try {
@@ -90,13 +94,18 @@ export default function StaffPortalPage() {
       });
 
       globalWebSocket.subscribe("/topic/tasks", () => {
-        if (user?.staffId) {
-          fetchTasks(user.staffId);
+        const currentStaffId = staffIdRef.current || user?.staffId;
+        if (currentStaffId) {
+          fetchTasks(currentStaffId);
         }
       });
     });
 
-  }, [isReady, user, fetchStaffs, fetchAreas, fetchTasks]);
+    // 🔄 Continuous Fallback Polling (Every 2 seconds) so tasks ALWAYS sync automatically with 0 manual refresh needed!
+    const interval = setInterval(syncPortalData, 2000);
+    return () => clearInterval(interval);
+
+  }, [isReady, user, fetchStaffs, fetchAreas, fetchTasks, emergencyActive]);
 
   if (!isReady || !user) return null;
 
@@ -192,7 +201,7 @@ export default function StaffPortalPage() {
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.25 }}>
                 <Box sx={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: "#10B981" }} />
                 <AppTypography preset="helperText" sx={{ color: "#10B981", fontSize: "0.675rem", fontWeight: 700 }}>
-                  WebSocket Real-Time Active
+                  WebSocket Auto-Sync Active
                 </AppTypography>
               </Box>
             </Box>
