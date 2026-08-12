@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # 🗄️ PostgreSQL Database Service
+  postgres:
+    image: postgres:16-alpine
+    container_name: workforce-postgres
+    restart: always
+    environment:
+      POSTGRES_DB: kembang_tasik_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespassword
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ⚡ Redis Session Store Service
+  redis:
+    image: redis:7-alpine
+    container_name: workforce-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ☕ Spring Boot Backend API Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: workforce-backend
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/kembang_tasik_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgrespassword
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+
+  # ⚛️ Next.js Frontend Application Service
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: workforce-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080/api
+      NEXT_PUBLIC_WS_URL: http://localhost:8080/ws-coordination
+
+volumes:
+  postgres_data:

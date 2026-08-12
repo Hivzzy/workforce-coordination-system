@@ -181,6 +181,12 @@ export default function StaffPortalPage() {
               <AppTypography preset="helperText" sx={{ color: "#64748B", fontSize: "0.8rem", fontWeight: 500 }}>
                 {user.email}
               </AppTypography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.25 }}>
+                <Box sx={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: "#10B981" }} />
+                <AppTypography preset="helperText" sx={{ color: "#10B981", fontSize: "0.675rem", fontWeight: 700 }}>
+                  WebSocket Real-Time Active
+                </AppTypography>
+              </Box>
             </Box>
           </Box>
 

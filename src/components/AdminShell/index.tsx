@@ -161,6 +161,12 @@ export default function AdminShell({ children }: AdminShellProps) {
           >
             Admin Portal
           </AppTypography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.5 }}>
+            <Box sx={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "#10B981" }} />
+            <AppTypography preset="helperText" sx={{ color: "#94A3B8", fontSize: "0.675rem", fontWeight: 600 }}>
+              WebSocket Active
+            </AppTypography>
+          </Box>
         </Box>
       </Box>
 
