@@ -7,7 +7,7 @@ import { useAuthStore } from "@/features/auth/store/auth.store";
 /**
  * Reusable production admin route guard hook.
  * Redirects unauthenticated users to /login and staff users to /portal.
- * Checks JWT expiration automatically.
+ * Checks Redis session expiration automatically.
  */
 export function useAdminGuard() {
   const user = useAuthStore((s) => s.user);

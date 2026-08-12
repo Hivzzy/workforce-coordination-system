@@ -7,7 +7,7 @@ import { useAuthStore } from "@/features/auth/store/auth.store";
 /**
  * Reusable production staff route guard hook.
  * Redirects unauthenticated users to /login and admin users to /dashboard.
- * Checks JWT expiration automatically.
+ * Checks Redis session expiration automatically.
  */
 export function useStaffGuard() {
   const user = useAuthStore((s) => s.user);

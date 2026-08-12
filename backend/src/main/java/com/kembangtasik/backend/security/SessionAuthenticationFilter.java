@@ -66,10 +66,6 @@ public class SessionAuthenticationFilter extends OncePerRequestFilter {
                 if (COOKIE_NAME.equals(cookie.getName()) && StringUtils.hasText(cookie.getValue())) {
                     return cookie.getValue();
                 }
-                // Backward compatibility check for jwt_token cookie name
-                if ("jwt_token".equals(cookie.getName()) && StringUtils.hasText(cookie.getValue())) {
-                    return cookie.getValue();
-                }
             }
         }
 
