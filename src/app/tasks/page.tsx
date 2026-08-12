@@ -36,6 +36,8 @@ import AdminShell from "@/components/AdminShell";
 import { useAdminGuard } from "@/hooks/useAdminGuard";
 import { verifyAdminAuth } from "@/utils/auth.utils";
 
+import { globalWebSocket } from "@/utils/websocket-client";
+
 const PAGE_SIZE = 5;
 
 export default function TasksPage() {
@@ -65,6 +67,13 @@ export default function TasksPage() {
     fetchTasks();
     fetchStaffs();
     fetchAreas();
+
+    // ⚡ Real-Time WebSocket STOMP Sync for Tasks (< 50ms)
+    globalWebSocket.connect(() => {
+      globalWebSocket.subscribe("/topic/tasks", () => {
+        fetchTasks();
+      });
+    });
   }, [fetchTasks, fetchStaffs, fetchAreas]);
 
   if (!isReady) return null;
