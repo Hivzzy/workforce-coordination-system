@@ -1,17 +1,49 @@
 @import "tailwindcss";
 
 :root {
-  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  /* 🎨 Color Tokens matching DESIGN.md */
+  --color-primary-yellow: #FBC02D;
+  --color-primary-hover: #F57F17;
+  --color-navy-dark: #0F172A;
+  --color-navy-table-header: #131927;
+  --color-bg-page: #F6F6F6;
+  --color-surface-white: #FFFFFF;
+  --color-emergency-red: #C5221F;
+  --color-status-green: #1F7D53;
+  --color-badge-green: #10B981;
+  --color-badge-orange: #F97316;
+  --color-badge-gray: #64748B;
+  --color-badge-blue: #6366F1;
+
+  --font-sans: var(--font-poppins), 'Poppins', 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
 }
 
 body {
   font-family: var(--font-sans);
-  background-color: #09090b;
-  color: #fafafa;
+  background-color: var(--color-bg-page);
+  color: #0F172A;
+  margin: 0;
+  padding: 0;
 }
 
-/* ─── Ultra Clean Micro Animations ─── */
+/* ─── Pulse Animation for Emergency Alert ─── */
+@keyframes pulseEmergency {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 16px rgba(197, 34, 31, 0.4);
+  }
+  50% {
+    transform: scale(1.015);
+    box-shadow: 0 6px 24px rgba(197, 34, 31, 0.65);
+  }
+}
+
+.animate-pulse-emergency {
+  animation: pulseEmergency 2s infinite ease-in-out;
+}
+
+/* ─── Fade In Animation ─── */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -27,21 +59,10 @@ body {
   animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* ─── Minimalist Background Grid Pattern ─── */
-.bg-grid-pattern {
-  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
-  background-size: 24px 24px;
-}
-
-/* ─── Refined Subtle Gold Accent ─── */
 .text-gold {
-  color: #eab308;
+  color: #FBC02D;
 }
 
-.border-gold-subtle {
-  border-color: rgba(234, 179, 8, 0.3);
-}
-
-.bg-gold-subtle {
-  background-color: rgba(234, 179, 8, 0.08);
+.bg-navy {
+  background-color: #0F172A;
 }

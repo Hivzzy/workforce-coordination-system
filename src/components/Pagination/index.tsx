@@ -8,7 +8,6 @@ interface PaginationProps {
   count: number;
   onChange: (page: number) => void;
   size?: "small" | "medium" | "large";
-  color?: "primary" | "secondary" | "standard";
 }
 
 export default function Pagination({
@@ -16,25 +15,33 @@ export default function Pagination({
   count,
   onChange,
   size = "medium",
-  color = "primary",
 }: PaginationProps) {
   const handleChange = (_event: React.ChangeEvent<unknown>, value: number) => {
     onChange(value);
   };
 
   return (
-    <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+    <Box sx={{ display: "flex", justifyContent: "center", py: 2.5 }}>
       <MuiPagination
         page={page}
         count={count}
         onChange={handleChange}
         size={size}
-        color={color}
         shape="rounded"
         sx={{
           "& .MuiPaginationItem-root": {
-            fontWeight: "bold",
+            fontWeight: 700,
             fontFamily: "var(--font-poppins)",
+            borderRadius: "6px",
+            color: "#64748B",
+            "&.Mui-selected": {
+              backgroundColor: "#FBC02D",
+              color: "#0F172A",
+              "&:hover": {
+                backgroundColor: "#F57F17",
+                color: "#ffffff",
+              },
+            },
           },
         }}
       />

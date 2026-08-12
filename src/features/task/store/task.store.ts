@@ -17,6 +17,7 @@ type TaskState = {
   tasks: Task[];
   fetchTasks: (staffId?: string) => Promise<void>;
   addTask: (task: Omit<Task, "createdAt">) => Promise<void>;
+  updateTask: (id: string, task: Partial<Omit<Task, "id" | "createdAt">>) => Promise<void>;
   updateTaskStatus: (id: string, status: Task["status"]) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
 };
@@ -44,6 +45,19 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       set({ tasks: Array.isArray(tasks) ? tasks : [] });
     } catch (error) {
       console.error("addTask failed:", error);
+    }
+  },
+
+  updateTask: async (id, updatedFields) => {
+    try {
+      await apiFetch(`/tasks/${id}`, {
+        method: "PUT",
+        data: updatedFields,
+      });
+      const tasks = await apiFetch<Task[]>("/tasks");
+      set({ tasks: Array.isArray(tasks) ? tasks : [] });
+    } catch (error) {
+      console.error("updateTask failed:", error);
     }
   },
 

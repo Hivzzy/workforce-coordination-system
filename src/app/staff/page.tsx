@@ -15,9 +15,11 @@ import {
   Stack,
   InputAdornment,
   Chip,
+  IconButton,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
+import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import AppTypography from "@/components/AppTypography";
 import AppButton from "@/components/AppButton";
 import Modal from "@/components/Modal";
@@ -27,7 +29,6 @@ import AdminShell from "@/components/AdminShell";
 import { Staff } from "@/features/staff/types/staff.types";
 import { useAdminGuard } from "@/hooks/useAdminGuard";
 import { verifyAdminAuth } from "@/utils/auth.utils";
-
 import { apiFetch } from "@/utils/api-client";
 
 const PAGE_SIZE = 5;
@@ -89,15 +90,6 @@ export default function StaffPage() {
     setRole("");
     setEmail("");
     setPassword("");
-    setFormOpen(true);
-  };
-
-  const handleOpenEditForm = (staff: Staff) => {
-    setEditingId(staff.id);
-    setName(staff.name);
-    setRole(staff.role);
-    setEmail(staff.email || "");
-    setPassword(staff.password || "");
     setFormOpen(true);
   };
 
@@ -164,7 +156,6 @@ export default function StaffPage() {
     setDeleteConfirmOpen(false);
     setTargetStaff(null);
 
-    // Adjust page if deletion empties current page
     const totalRemaining = filteredStaffs.length - 1;
     const maxPage = Math.max(1, Math.ceil(totalRemaining / PAGE_SIZE));
     if (page > maxPage) {
@@ -177,16 +168,16 @@ export default function StaffPage() {
     assignStaffToArea(staffId, areaId);
   };
 
-  // Pagination slicing (on filtered results)
+  // Pagination slicing
   const startIndex = (page - 1) * PAGE_SIZE;
   const paginatedStaffs = filteredStaffs.slice(startIndex, startIndex + PAGE_SIZE);
   const totalPages = Math.ceil(filteredStaffs.length / PAGE_SIZE);
 
-  // DataTable columns definition
+  // DataTable columns definition (Matching Figma Staff Management.svg)
   const columns: Column<Staff>[] = [
     {
       id: "index",
-      label: "No",
+      label: "No.",
       align: "center",
       render: (_, idx) => <>{startIndex + idx + 1}</>,
     },
@@ -195,9 +186,9 @@ export default function StaffPage() {
       label: "Nama Staff",
       render: (row) => (
         <Box>
-          <Box sx={{ fontWeight: 600 }}>{row.name}</Box>
+          <Box sx={{ fontWeight: 700, color: "#0F172A", fontSize: "0.95rem" }}>{row.name}</Box>
           {row.email && (
-            <Box sx={{ fontSize: "0.72rem", color: "text.secondary", mt: 0.2, fontWeight: 500 }}>
+            <Box sx={{ fontSize: "0.75rem", color: "#64748B", mt: 0.2, fontWeight: 500 }}>
               {row.email}
             </Box>
           )}
@@ -211,33 +202,18 @@ export default function StaffPage() {
         const foundRole = roles.find((r) => r.id === row.role);
         const displayName = foundRole ? foundRole.name : row.role;
         return (
-          <Box
+          <Chip
+            label={displayName}
+            size="small"
             sx={{
-              display: "inline-block",
-              px: 1.5,
-              py: 0.5,
-              borderRadius: 2,
+              backgroundColor: "#0F172A",
+              color: "#ffffff",
+              fontWeight: 700,
               fontSize: "0.75rem",
-              fontWeight: "bold",
-              textTransform: "uppercase",
-              bgcolor: row.role === "security" ? "error.main" : row.role === "cleaning" ? "secondary.main" : "primary.main",
-              color: "white",
+              borderRadius: "6px",
+              height: 24,
             }}
-          >
-            {displayName}
-          </Box>
-        );
-      },
-    },
-    {
-      id: "area",
-      label: "Area Saat Ini",
-      render: (row) => {
-        const area = areas.find((a) => a.id === row.assignedAreaId);
-        return area ? (
-          <Box sx={{ color: "primary.main", fontWeight: 600 }}>{area.name}</Box>
-        ) : (
-          <Box sx={{ color: "text.secondary", fontStyle: "italic" }}>Belum Ditugaskan</Box>
+          />
         );
       },
     },
@@ -245,22 +221,23 @@ export default function StaffPage() {
       id: "assignment",
       label: "Delegasikan Area",
       render: (row) => (
-        <FormControl size="small" sx={{ minWidth: 150 }}>
-          <InputLabel id={`assign-label-${row.id}`} sx={{ fontSize: "0.85rem" }}>
-            Pilih Area
-          </InputLabel>
+        <FormControl size="small" sx={{ minWidth: 170 }}>
           <Select
-            labelId={`assign-label-${row.id}`}
             value={row.assignedAreaId || ""}
-            label="Pilih Area"
+            displayEmpty
             onChange={(e) => handleAssignArea(row.id, e.target.value)}
             sx={{
               fontSize: "0.85rem",
-              borderRadius: 2,
+              borderRadius: "8px",
+              backgroundColor: "#ffffff",
+              height: 38,
+              "& .MuiOutlinedInput-notchedOutline": {
+                borderColor: "#CBD5E1",
+              },
             }}
           >
             <MenuItem value="">
-              <em>Unassigned (Lepas Tugas)</em>
+              <em>Area</em>
             </MenuItem>
             {areas.map((area) => (
               <MenuItem key={area.id} value={area.id} sx={{ fontSize: "0.85rem" }}>
@@ -276,28 +253,28 @@ export default function StaffPage() {
       label: "Aksi",
       align: "center",
       render: (row) => (
-        <Stack direction="row" spacing={1} sx={{ justifyContent: "center" }}>
-          <AppButton
-            variant="outlined"
-            label="Edit"
-            onClick={() => handleOpenEditForm(row)}
-            sx={{ py: 0.6, px: 1.5, fontSize: "0.8rem" }}
-          />
-          <AppButton
-            variant="outlined"
-            color="error"
-            label="Hapus"
-            onClick={() => handleOpenDeleteConfirm(row)}
-            sx={{ py: 0.6, px: 1.5, fontSize: "0.8rem" }}
-          />
-        </Stack>
+        <IconButton
+          onClick={() => handleOpenDeleteConfirm(row)}
+          sx={{
+            backgroundColor: "#C5221F",
+            color: "#ffffff",
+            borderRadius: "8px",
+            width: 36,
+            height: 36,
+            "&:hover": {
+              backgroundColor: "#991B1B",
+            },
+          }}
+        >
+          <DeleteOutlinedIcon sx={{ fontSize: 18 }} />
+        </IconButton>
       ),
     },
   ];
 
   return (
     <AdminShell>
-      {/* Header and Add Actions */}
+      {/* Header and Add Actions (Exact Figma Staff Management.svg) */}
       <Box
         sx={{
           display: "flex",
@@ -309,24 +286,36 @@ export default function StaffPage() {
         }}
       >
         <Box>
-          <AppTypography preset="pageTitle">Modul User Management & Penugasan Staf Kru</AppTypography>
-          <AppTypography preset="helperText" color="text.secondary">
-            Kelola data akun kru katering & WO Kembang Tasik, atur peran pengguna, dan tentukan alokasi penugasan staf.
+          <AppTypography preset="pageTitle" sx={{ fontWeight: 800, fontSize: "1.85rem", letterSpacing: "-0.03em", color: "#0F172A" }}>
+            Staff Management (HRMS)
+          </AppTypography>
+          <AppTypography preset="helperText" sx={{ color: "#64748B", fontSize: "0.925rem", mt: 0.5 }}>
+            Tambahkan staff lapangan, kelola peran, dan lakukan delegasi wilayah koordinasi.
           </AppTypography>
         </Box>
 
         <AppButton
           onClick={handleOpenAddForm}
-          label="Tambah Staff Baru"
-          variant="contained"
-          color="primary"
-          startIcon={<PersonAddIcon />}
-          sx={{ py: 1.2, px: 2.5 }}
+          label="Daftarkan Staff Baru"
+          startIcon={<PersonAddIcon sx={{ fontSize: 18 }} />}
+          sx={{
+            backgroundColor: "#FBC02D",
+            color: "#0F172A",
+            fontWeight: 800,
+            py: 1.2,
+            px: 3,
+            borderRadius: "8px",
+            boxShadow: "0 4px 12px rgba(251, 192, 45, 0.35)",
+            "&:hover": {
+              backgroundColor: "#F57F17",
+              color: "#ffffff",
+            },
+          }}
         />
       </Box>
 
       {/* Search & Filter Bar */}
-      <Card sx={{ mb: 3 }}>
+      <Card sx={{ mb: 3, borderRadius: "12px", border: "1px solid #E2E8F0", boxShadow: "0 2px 8px rgba(0, 0, 0, 0.04)" }}>
         <CardContent sx={{ py: 2, "&:last-child": { pb: 2 } }}>
           <Stack
             direction={{ xs: "column", sm: "row" }}
@@ -343,10 +332,10 @@ export default function StaffPage() {
                 input: {
                   startAdornment: (
                     <InputAdornment position="start">
-                      <SearchIcon sx={{ color: "text.secondary", fontSize: 20 }} />
+                      <SearchIcon sx={{ color: "#64748B", fontSize: 20 }} />
                     </InputAdornment>
                   ),
-                  sx: { borderRadius: 2 },
+                  sx: { borderRadius: "8px", backgroundColor: "#ffffff" },
                 },
               }}
             />
@@ -357,7 +346,7 @@ export default function StaffPage() {
                 value={filterRole}
                 label="Filter Peran"
                 onChange={(e) => { setFilterRole(e.target.value); setPage(1); }}
-                sx={{ borderRadius: 2 }}
+                sx={{ borderRadius: "8px", backgroundColor: "#ffffff" }}
               >
                 <MenuItem value="all">Semua Peran</MenuItem>
                 {roles.map((r) => (
@@ -365,30 +354,17 @@ export default function StaffPage() {
                 ))}
               </Select>
             </FormControl>
-            {(searchQuery || filterRole !== "all") && (
-              <Chip
-                label={`${filteredStaffs.length} hasil`}
-                size="small"
-                color="primary"
-                variant="outlined"
-                sx={{ fontWeight: 700, fontFamily: "var(--font-poppins)" }}
-              />
-            )}
           </Stack>
         </CardContent>
       </Card>
 
-      {/* Main Staff Table */}
-      <Card>
+      {/* Main Staff Table (Exact Figma Staff Management.svg) */}
+      <Card sx={{ borderRadius: "12px", border: "1px solid #E2E8F0", overflow: "hidden", boxShadow: "0 4px 12px rgba(0, 0, 0, 0.04)" }}>
         <CardContent sx={{ p: 0 }}>
           <DataTable
             columns={columns}
             rows={paginatedStaffs}
-            emptyMessage={
-              searchQuery || filterRole !== "all"
-                ? `Tidak ditemukan staff dengan pencarian "${searchQuery}"${filterRole !== "all" ? ` dan peran "${filterRole}"` : ""}.`
-                : "Belum ada staff yang terdaftar. Gunakan tombol 'Tambah Staff Baru' di atas."
-            }
+            emptyMessage="Belum ada staff terdaftar. Klik tombol 'Daftarkan Staff Baru' di atas."
           />
           {totalPages > 1 && (
             <Pagination page={page} count={totalPages} onChange={(newPage) => setPage(newPage)} />
@@ -396,20 +372,26 @@ export default function StaffPage() {
         </CardContent>
       </Card>
 
-      {/* Add / Edit Staff Modal Form */}
+      {/* Add Staff Modal Form (Matches Figma Add New Staff.svg) */}
       <Modal
         open={formOpen}
         onClose={() => setFormOpen(false)}
-        title={editingId ? "Edit Profil Staff" : "Daftarkan Staff Baru"}
+        title="Daftarkan Staff Baru"
         type="form"
         actions={
           <Stack direction="row" spacing={1.5} sx={{ width: "100%", justifyContent: "flex-end" }}>
             <AppButton variant="outlined" label="Batal" onClick={() => setFormOpen(false)} />
             <AppButton
               variant="contained"
-              label={editingId ? "Simpan Perubahan" : "Daftarkan Staff"}
+              label="Daftarkan Staff"
               onClick={handleSave}
               disabled={!name.trim() || !role}
+              sx={{
+                backgroundColor: "#FBC02D",
+                color: "#0F172A",
+                fontWeight: 700,
+                "&:hover": { backgroundColor: "#F57F17", color: "#ffffff" },
+              }}
             />
           </Stack>
         }
@@ -417,27 +399,23 @@ export default function StaffPage() {
         <Stack spacing={3} sx={{ pt: 1 }}>
           <TextField
             fullWidth
-            label="Nama Lengkap"
-            placeholder="Masukkan nama lengkap staff..."
+            label="Nama Staff"
+            placeholder="Masukkan nama lengkap..."
             value={name}
             onChange={(e) => setName(e.target.value)}
             slotProps={{
-              input: { sx: { borderRadius: 2 } },
+              input: { sx: { borderRadius: "8px" } },
             }}
           />
 
-          <AppTypography preset="helperText" sx={{ mt: -1.5, mb: 0.5, pl: 0.5, color: "text.secondary", fontWeight: 500 }}>
-            💡 Akun login dibuat otomatis: <strong>[nama_depan]@coordination.com</strong> dengan password default <strong>staff</strong>.
-          </AppTypography>
-
           <FormControl fullWidth>
-            <InputLabel id="role-select-label">Peran Tugas</InputLabel>
+            <InputLabel id="role-select-label">Peran / Tugas</InputLabel>
             <Select
               labelId="role-select-label"
               value={role}
-              label="Peran Tugas"
+              label="Peran / Tugas"
               onChange={(e) => setRole(e.target.value)}
-              sx={{ borderRadius: 2 }}
+              sx={{ borderRadius: "8px" }}
             >
               {roles.map((r) => (
                 <MenuItem key={r.id} value={r.id}>{r.name}</MenuItem>
@@ -446,27 +424,27 @@ export default function StaffPage() {
           </FormControl>
 
           {/* Add custom role sub-form */}
-          <Box sx={{ border: "1px dashed", borderColor: "divider", p: 2, borderRadius: 2, bgcolor: "action.hover" }}>
-            <AppTypography preset="helperText" sx={{ fontWeight: 700, mb: 1, color: "text.primary" }}>
-              ➕ Peran tidak terdaftar? Tambahkan di sini:
+          <Box sx={{ border: "1px dashed #CBD5E1", p: 2, borderRadius: "8px", backgroundColor: "#F8FAFC" }}>
+            <AppTypography preset="helperText" sx={{ fontWeight: 700, mb: 1, color: "#334155" }}>
+              ➕ Peran belum ada di pilihan? Tambahkan di sini:
             </AppTypography>
             <Stack direction="row" spacing={1.5}>
               <TextField
                 size="small"
                 fullWidth
-                label="Nama Peran Baru"
-                placeholder="Misal: Medic, Teknisi, Sound..."
+                label="Peran Baru"
+                placeholder="Misal: Sound Engineer, P3K..."
                 value={newRoleInput}
                 onChange={(e) => setNewRoleInput(e.target.value)}
-                slotProps={{ input: { sx: { borderRadius: 2 } } }}
+                slotProps={{ input: { sx: { borderRadius: "8px" } } }}
               />
               <AppButton
                 size="small"
                 variant="contained"
-                color="primary"
                 label="Tambah"
                 onClick={handleAddNewRole}
                 disabled={!newRoleInput.trim()}
+                sx={{ backgroundColor: "#0F172A", color: "#ffffff" }}
               />
             </Stack>
           </Box>
@@ -484,8 +462,8 @@ export default function StaffPage() {
         cancelLabel="Batal"
         onConfirm={handleConfirmDelete}
       >
-        Apakah Anda yakin ingin menghapus data staff **&quot;{targetStaff?.name}&quot;** ({targetStaff?.role})? 
-        Aksi ini tidak dapat dibatalkan dan akan melepaskan staff dari semua area penugasan.
+        Apakah Anda yakin ingin menghapus data staff **&quot;{targetStaff?.name}&quot;**? 
+        Aksi ini tidak dapat dibatalkan.
       </Modal>
     </AdminShell>
   );

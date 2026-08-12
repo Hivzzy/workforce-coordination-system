@@ -46,82 +46,82 @@ export function MuiThemeProvider({ children }: { children: React.ReactNode }) {
   const theme = useMemo(() => {
     return createTheme({
       palette: {
-        mode: "dark",
+        mode: "light",
         primary: {
-          main: "#eab308", // Refined Gold
-          dark: "#ca8a04",
-          light: "#fde047",
-          contrastText: "#000000",
+          main: "#FBC02D", // Primary Gold/Yellow from DESIGN.md
+          dark: "#F57F17",
+          light: "#FFE082",
+          contrastText: "#0F172A",
         },
         secondary: {
-          main: "#a1a1aa", // Muted Silver
-          dark: "#71717a",
-          light: "#e4e4e7",
-          contrastText: "#000000",
+          main: "#0F172A", // Dark Navy from DESIGN.md
+          dark: "#090D16",
+          light: "#1E293B",
+          contrastText: "#FFFFFF",
         },
         error: {
-          main: "#ef4444", // Clean Red
-          dark: "#dc2626",
-          contrastText: "#ffffff",
+          main: "#C5221F", // Emergency Red from DESIGN.md
+          dark: "#991B1B",
+          contrastText: "#FFFFFF",
         },
         success: {
-          main: "#22c55e", // Clean Green
-          dark: "#16a34a",
-          contrastText: "#ffffff",
+          main: "#1F7D53", // Status Green from DESIGN.md
+          dark: "#14532D",
+          contrastText: "#FFFFFF",
         },
         warning: {
-          main: "#f59e0b", // Clean Amber
-          dark: "#d97706",
-          contrastText: "#000000",
+          main: "#F97316", // Operational Warning Orange
+          dark: "#EA580C",
+          contrastText: "#FFFFFF",
         },
         refill: {
-          main: "#eab308",
-          dark: "#ca8a04",
-          contrastText: "#000000",
+          main: "#0D9488",
+          dark: "#0F766E",
+          contrastText: "#FFFFFF",
         },
         help: {
-          main: "#f97316",
-          dark: "#ea580c",
-          contrastText: "#ffffff",
+          main: "#F97316",
+          dark: "#EA580C",
+          contrastText: "#FFFFFF",
         },
         emergency: {
-          main: "#ef4444",
-          dark: "#dc2626",
-          contrastText: "#ffffff",
+          main: "#C5221F",
+          dark: "#991B1B",
+          contrastText: "#FFFFFF",
         },
         background: {
-          default: "#09090b", // Crisp Zinc 950
-          paper: "#121215", // Crisp Zinc 900
+          default: "#F6F6F6", // Page BG from DESIGN.md
+          paper: "#FFFFFF",
         },
         text: {
-          primary: "#ffffff", // Pure White
-          secondary: "#a1a1aa", // Muted Gray
+          primary: "#0F172A",
+          secondary: "#64748B",
         },
-        divider: "#1e1e24", // Subtle 1px Divider
+        divider: "#E2E8F0",
       },
       shape: {
         borderRadius: 8,
       },
       typography: {
-        fontFamily: "var(--font-poppins), -apple-system, BlinkMacSystemFont, Roboto, sans-serif",
-        h1: { fontWeight: 700, letterSpacing: "-0.03em" },
+        fontFamily: "var(--font-poppins), 'Poppins', -apple-system, BlinkMacSystemFont, Roboto, sans-serif",
+        h1: { fontWeight: 800, letterSpacing: "-0.03em" },
         h2: { fontWeight: 700, letterSpacing: "-0.02em" },
-        h3: { fontWeight: 600, letterSpacing: "-0.01em" },
-        body1: { lineHeight: 1.6 },
-        button: { textTransform: "none", fontWeight: 600 },
+        h3: { fontWeight: 700, letterSpacing: "-0.01em" },
+        body1: { lineHeight: 1.5, fontSize: "0.9rem" },
+        button: { textTransform: "none", fontWeight: 700 },
       },
       components: {
         MuiCssBaseline: {
           styleOverrides: {
             body: {
-              backgroundColor: "#09090b",
-              color: "#ffffff",
+              backgroundColor: "#F6F6F6",
+              color: "#0F172A",
               "&::-webkit-scrollbar": { width: "6px", height: "6px" },
-              "&::-webkit-scrollbar-track": { background: "#09090b" },
+              "&::-webkit-scrollbar-track": { background: "#F1F5F9" },
               "&::-webkit-scrollbar-thumb": {
-                background: "#27272a",
+                background: "#CBD5E1",
                 borderRadius: "3px",
-                "&:hover": { background: "#3f3f46" },
+                "&:hover": { background: "#94A3B8" },
               },
             },
           },
@@ -129,35 +129,36 @@ export function MuiThemeProvider({ children }: { children: React.ReactNode }) {
         MuiButton: {
           styleOverrides: {
             root: {
-              borderRadius: "6px",
-              padding: "8px 16px",
+              borderRadius: "8px",
+              padding: "8px 20px",
               fontSize: "0.875rem",
-              fontWeight: 600,
+              fontWeight: 700,
               boxShadow: "none",
               transition: "all 0.15s ease",
               "&:hover": {
                 boxShadow: "none",
               },
               "&.MuiButton-containedPrimary": {
-                backgroundColor: "#eab308",
-                color: "#000000",
+                backgroundColor: "#FBC02D",
+                color: "#0F172A",
                 "&:hover": {
-                  backgroundColor: "#ca8a04",
+                  backgroundColor: "#F57F17",
+                  color: "#FFFFFF",
                 },
               },
               "&.MuiButton-containedSecondary": {
-                backgroundColor: "#27272a",
-                color: "#ffffff",
+                backgroundColor: "#0F172A",
+                color: "#FFFFFF",
                 "&:hover": {
-                  backgroundColor: "#3f3f46",
+                  backgroundColor: "#1E293B",
                 },
               },
               "&.MuiButton-outlined": {
-                borderColor: "#27272a",
-                color: "#ffffff",
+                borderColor: "#CBD5E1",
+                color: "#0F172A",
                 "&:hover": {
-                  borderColor: "#3f3f46",
-                  backgroundColor: "#18181b",
+                  borderColor: "#0F172A",
+                  backgroundColor: "#F8FAFC",
                 },
               },
             },
@@ -166,34 +167,30 @@ export function MuiThemeProvider({ children }: { children: React.ReactNode }) {
         MuiCard: {
           styleOverrides: {
             root: {
-              borderRadius: "10px",
-              backgroundColor: "#121215",
-              border: "1px solid #1e1e24",
-              boxShadow: "none",
+              borderRadius: "12px",
+              backgroundColor: "#FFFFFF",
+              border: "1px solid #E2E8F0",
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.04)",
               backgroundImage: "none",
-              transition: "border-color 0.15s ease",
-              "&:hover": {
-                borderColor: "#2e2e38",
-              },
             },
           },
         },
         MuiOutlinedInput: {
           styleOverrides: {
             root: {
-              borderRadius: "6px",
-              backgroundColor: "#09090b",
-              color: "#ffffff",
+              borderRadius: "8px",
+              backgroundColor: "#FFFFFF",
+              color: "#0F172A",
               fontSize: "0.875rem",
               "& .MuiOutlinedInput-notchedOutline": {
-                borderColor: "#27272a",
+                borderColor: "#CBD5E1",
               },
               "&:hover .MuiOutlinedInput-notchedOutline": {
-                borderColor: "#3f3f46",
+                borderColor: "#94A3B8",
               },
               "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
-                borderColor: "#eab308",
-                borderWidth: "1px",
+                borderColor: "#FBC02D",
+                borderWidth: "2px",
               },
             },
           },
@@ -201,25 +198,24 @@ export function MuiThemeProvider({ children }: { children: React.ReactNode }) {
         MuiTableCell: {
           styleOverrides: {
             root: {
-              borderBottom: "1px solid #1e1e24",
-              color: "#ffffff",
-              fontSize: "0.875rem",
-              padding: "12px 16px",
+              borderBottom: "1px solid #F1F5F9",
+              color: "#0F172A",
+              fontSize: "0.9rem",
+              padding: "16px 20px",
             },
             head: {
-              backgroundColor: "#18181b",
-              color: "#a1a1aa",
-              fontWeight: 600,
-              fontSize: "0.75rem",
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
+              backgroundColor: "#131927",
+              color: "#FCFCFD",
+              fontWeight: 700,
+              fontSize: "0.825rem",
+              letterSpacing: "0.02em",
             },
           },
         },
         MuiChip: {
           styleOverrides: {
             root: {
-              fontWeight: 500,
+              fontWeight: 700,
               borderRadius: "6px",
               fontSize: "0.75rem",
             },

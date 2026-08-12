@@ -13,14 +13,16 @@ import {
   IconButton,
   Container,
   Chip,
+  Divider,
+  Button,
 } from "@mui/material";
-import EmailIcon from "@mui/icons-material/Email";
-import LockIcon from "@mui/icons-material/Lock";
+import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import LoginIcon from "@mui/icons-material/Login";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import AppTypography from "@/components/AppTypography";
-import AppButton from "@/components/AppButton";
 import Modal from "@/components/Modal";
 
 export default function LoginPage() {
@@ -113,85 +115,87 @@ export default function LoginPage() {
 
   return (
     <Box
-      className="bg-grid-pattern"
       sx={{
         minHeight: "100vh",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        backgroundColor: "#09090b",
-        py: 6,
+        backgroundImage: 'linear-gradient(rgba(18, 18, 18, 0.4), rgba(18, 18, 18, 0.4)), url("/login-bg.png")',
+        backgroundPosition: "center",
+        backgroundSize: "cover",
+        backgroundRepeat: "no-repeat",
+        py: 4,
         px: 2,
       }}
     >
-      <Container maxWidth="xs">
+      <Container maxWidth="sm" sx={{ display: "flex", justifyContent: "center" }}>
         <Card
-          className="animate-fade-in"
           sx={{
-            backgroundColor: "#121215",
-            border: "1px solid #1e1e24",
-            borderRadius: 3,
-            boxShadow: "none",
+            width: "100%",
+            maxWidth: 540,
+            backgroundColor: "#ffffff",
+            borderRadius: "12px",
+            border: "1px solid #FBC02D",
+            boxShadow: "0 20px 40px rgba(0, 0, 0, 0.25)",
+            overflow: "hidden",
           }}
         >
-          <CardContent sx={{ p: { xs: 3.5, sm: 4.5 } }}>
-            {/* Header / Logo */}
-            <Box sx={{ mb: 4, textAlign: "left" }}>
+          <CardContent sx={{ p: { xs: 3.5, sm: 5 } }}>
+            {/* Logo Badge & Header (Matches Figma Auth.png / Auth.svg) */}
+            <Box sx={{ textAlign: "center", mb: 2.5 }}>
               <Box
                 sx={{
                   display: "inline-flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  width: 36,
-                  height: 36,
-                  borderRadius: 1.5,
-                  backgroundColor: "#18181b",
-                  border: "1px solid #27272a",
-                  mb: 2.5,
-                  position: "relative",
+                  width: 58,
+                  height: 58,
+                  borderRadius: "50%",
+                  backgroundColor: "#FBC02D",
+                  boxShadow: "0 4px 14px rgba(251, 192, 45, 0.4)",
+                  mb: 2,
                 }}
               >
                 <AppTypography
                   sx={{
                     color: "#ffffff",
-                    fontSize: "0.875rem",
-                    fontWeight: 700,
-                    letterSpacing: "-0.02em",
+                    fontSize: "1.75rem",
+                    fontWeight: 800,
+                    fontFamily: "var(--font-poppins)",
+                    lineHeight: 1,
                   }}
                 >
-                  KT
+                  W
                 </AppTypography>
-                <Box
-                  sx={{
-                    position: "absolute",
-                    top: 6,
-                    right: 6,
-                    width: 5,
-                    height: 5,
-                    borderRadius: "50%",
-                    backgroundColor: "#eab308",
-                  }}
-                />
               </Box>
+
               <AppTypography
                 preset="pageTitle"
                 sx={{
-                  color: "#ffffff",
-                  fontWeight: 700,
-                  fontSize: "1.25rem",
-                  letterSpacing: "-0.02em",
-                  mb: 0.5,
+                  color: "#0F172A",
+                  fontWeight: 800,
+                  fontSize: "1.75rem",
+                  letterSpacing: "-0.03em",
+                  mb: 0.75,
                 }}
               >
-                Kembang Tasik
+                Workforce System
               </AppTypography>
+
               <AppTypography
                 preset="helperText"
-                sx={{ color: "#a1a1aa", fontSize: "0.8125rem" }}
+                sx={{
+                  color: "#64748B",
+                  fontSize: "0.875rem",
+                  fontWeight: 500,
+                  lineHeight: 1.4,
+                }}
               >
-                Workforce & Event Coordination System
+                Masukkan kredensial Anda untuk masuk ke Panel Koordinator
               </AppTypography>
             </Box>
+
+            <Divider sx={{ mb: 3, borderColor: "#E2E8F0" }} />
 
             {/* Login Form */}
             <Box
@@ -199,162 +203,183 @@ export default function LoginPage() {
               onSubmit={handleLogin}
               sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}
             >
-              <Box>
-                <AppTypography
-                  preset="helperText"
-                  sx={{ color: "#a1a1aa", fontSize: "0.75rem", fontWeight: 600, mb: 0.75, display: "block" }}
-                >
-                  Email
-                </AppTypography>
-                <TextField
-                  fullWidth
-                  variant="outlined"
-                  placeholder="admin@coordination.com"
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={loading}
-                  slotProps={{
-                    input: {
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <EmailIcon sx={{ color: "#71717a", fontSize: 18 }} />
-                        </InputAdornment>
-                      ),
+              <TextField
+                fullWidth
+                variant="outlined"
+                placeholder="Email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <EmailOutlinedIcon sx={{ color: "#64748B", fontSize: 20 }} />
+                      </InputAdornment>
+                    ),
+                    sx: {
+                      borderRadius: "8px",
+                      backgroundColor: "#ffffff",
+                      color: "#0F172A",
+                      fontSize: "0.925rem",
+                      height: 48,
+                      "& .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "#CBD5E1",
+                      },
+                      "&:hover .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "#94A3B8",
+                      },
+                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "#FBC02D",
+                        borderWidth: "1.5px",
+                      },
                     },
-                  }}
-                />
-              </Box>
-
-              <Box>
-                <AppTypography
-                  preset="helperText"
-                  sx={{ color: "#a1a1aa", fontSize: "0.75rem", fontWeight: 600, mb: 0.75, display: "block" }}
-                >
-                  Password
-                </AppTypography>
-                <TextField
-                  fullWidth
-                  variant="outlined"
-                  placeholder="••••••••"
-                  type={showPassword ? "text" : "password"}
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading}
-                  slotProps={{
-                    input: {
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <LockIcon sx={{ color: "#71717a", fontSize: 18 }} />
-                        </InputAdornment>
-                      ),
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            aria-label="toggle password visibility"
-                            onClick={() => setShowPassword(!showPassword)}
-                            edge="end"
-                            size="small"
-                            sx={{ color: "#71717a" }}
-                          >
-                            {showPassword ? (
-                              <VisibilityOff sx={{ fontSize: 18 }} />
-                            ) : (
-                              <Visibility sx={{ fontSize: 18 }} />
-                            )}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    },
-                  }}
-                />
-              </Box>
-
-              <AppButton
-                type="submit"
-                variant="contained"
-                label={loading ? "Verifying..." : "Sign in"}
-                loading={loading}
-                sx={{
-                  mt: 1,
-                  py: 1.2,
-                  fontSize: "0.875rem",
-                  fontWeight: 600,
-                  backgroundColor: "#eab308",
-                  color: "#000000",
-                  "&:hover": {
-                    backgroundColor: "#ca8a04",
                   },
                 }}
               />
+
+              <TextField
+                fullWidth
+                variant="outlined"
+                placeholder="Password"
+                type={showPassword ? "text" : "password"}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <LockOutlinedIcon sx={{ color: "#64748B", fontSize: 20 }} />
+                      </InputAdornment>
+                    ),
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          aria-label="toggle password visibility"
+                          onClick={() => setShowPassword(!showPassword)}
+                          edge="end"
+                          size="small"
+                          sx={{ color: "#FBC02D" }}
+                        >
+                          {showPassword ? (
+                            <VisibilityOff sx={{ fontSize: 20 }} />
+                          ) : (
+                            <Visibility sx={{ fontSize: 20 }} />
+                          )}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                    sx: {
+                      borderRadius: "8px",
+                      backgroundColor: "#ffffff",
+                      color: "#0F172A",
+                      fontSize: "0.925rem",
+                      height: 48,
+                      "& .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "#CBD5E1",
+                      },
+                      "&:hover .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "#94A3B8",
+                      },
+                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "#FBC02D",
+                        borderWidth: "1.5px",
+                      },
+                    },
+                  },
+                }}
+              />
+
+              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 1 }}>
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  startIcon={<LoginIcon sx={{ fontSize: 18, color: "#0F172A" }} />}
+                  sx={{
+                    py: 1.2,
+                    px: 3.5,
+                    borderRadius: "8px",
+                    fontSize: "0.925rem",
+                    fontWeight: 700,
+                    backgroundColor: "#FBC02D",
+                    color: "#0F172A",
+                    boxShadow: "0 4px 12px rgba(251, 192, 45, 0.35)",
+                    textTransform: "none",
+                    "&:hover": {
+                      backgroundColor: "#F57F17",
+                      color: "#ffffff",
+                      boxShadow: "0 6px 16px rgba(245, 127, 23, 0.4)",
+                      "& .MuiSvgIcon-root": { color: "#ffffff" },
+                    },
+                  }}
+                >
+                  {loading ? "Verifying..." : "Masuk Sistem"}
+                </Button>
+              </Box>
             </Box>
 
-            {/* Demo Credentials Section */}
+            {/* Demo Accounts Quick Tester */}
             <Box
               sx={{
                 mt: 3.5,
-                pt: 3,
-                borderTop: "1px solid #1e1e24",
+                pt: 2.5,
+                borderTop: "1px dashed #E2E8F0",
               }}
             >
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, mb: 1.5 }}>
-                <InfoOutlinedIcon sx={{ fontSize: 14, color: "#eab308" }} />
+                <InfoOutlinedIcon sx={{ fontSize: 14, color: "#D97706" }} />
                 <AppTypography
                   preset="helperText"
                   sx={{
-                    color: "#a1a1aa",
-                    fontWeight: 600,
+                    color: "#64748B",
+                    fontWeight: 700,
                     fontSize: "0.6875rem",
                     textTransform: "uppercase",
                     letterSpacing: "0.05em",
                   }}
                 >
-                  Demo Accounts
+                  Akun Demo (Klik untuk Isi Otomatis)
                 </AppTypography>
               </Box>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1, justifyContent: "space-between" }}>
-                  <Chip
-                    label="Admin"
-                    size="small"
-                    sx={{
-                      backgroundColor: "rgba(234, 179, 8, 0.15)",
-                      color: "#eab308",
-                      border: "1px solid rgba(234, 179, 8, 0.3)",
-                      fontWeight: 600,
-                      fontSize: "0.6875rem",
-                      height: 20,
-                    }}
-                  />
-                  <AppTypography
-                    preset="helperText"
-                    sx={{ color: "#71717a", fontSize: "0.75rem", fontFamily: "var(--font-mono)" }}
-                  >
-                    admin@coordination.com / admin
-                  </AppTypography>
-                </Box>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1, justifyContent: "space-between" }}>
-                  <Chip
-                    label="Staff"
-                    size="small"
-                    sx={{
-                      backgroundColor: "#18181b",
-                      color: "#a1a1aa",
-                      border: "1px solid #27272a",
-                      fontWeight: 600,
-                      fontSize: "0.6875rem",
-                      height: 20,
-                    }}
-                  />
-                  <AppTypography
-                    preset="helperText"
-                    sx={{ color: "#71717a", fontSize: "0.75rem", fontFamily: "var(--font-mono)" }}
-                  >
-                    staff@coordination.com / staff
-                  </AppTypography>
-                </Box>
+              <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
+                <Chip
+                  label="Admin: admin@coordination.com"
+                  size="small"
+                  onClick={() => {
+                    setEmail("admin@coordination.com");
+                    setPassword("admin");
+                  }}
+                  sx={{
+                    backgroundColor: "rgba(251, 192, 45, 0.15)",
+                    color: "#B45309",
+                    border: "1px solid rgba(251, 192, 45, 0.4)",
+                    fontWeight: 600,
+                    fontSize: "0.75rem",
+                    cursor: "pointer",
+                    "&:hover": { backgroundColor: "rgba(251, 192, 45, 0.3)" },
+                  }}
+                />
+                <Chip
+                  label="Staff: staff@coordination.com"
+                  size="small"
+                  onClick={() => {
+                    setEmail("staff@coordination.com");
+                    setPassword("staff");
+                  }}
+                  sx={{
+                    backgroundColor: "#F1F5F9",
+                    color: "#334155",
+                    border: "1px solid #CBD5E1",
+                    fontWeight: 600,
+                    fontSize: "0.75rem",
+                    cursor: "pointer",
+                    "&:hover": { backgroundColor: "#E2E8F0" },
+                  }}
+                />
               </Box>
             </Box>
           </CardContent>
@@ -368,7 +393,7 @@ export default function LoginPage() {
         title={alertConfig.title}
         type="alert"
         severity={alertConfig.severity}
-        confirmLabel={alertConfig.severity === "success" ? "Continue" : "Try Again"}
+        confirmLabel={alertConfig.severity === "success" ? "Lanjutkan" : "Coba Lagi"}
       >
         {alertConfig.message}
       </Modal>

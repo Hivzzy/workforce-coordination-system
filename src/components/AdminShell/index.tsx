@@ -14,7 +14,6 @@ import {
   ListItemIcon,
   ListItemText,
   IconButton,
-  Avatar,
   Divider,
   useTheme,
   useMediaQuery,
@@ -23,16 +22,14 @@ import {
 import MenuIcon from "@mui/icons-material/Menu";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PeopleIcon from "@mui/icons-material/People";
-import LayersIcon from "@mui/icons-material/Layers";
-import PaletteIcon from "@mui/icons-material/Palette";
-import LogoutIcon from "@mui/icons-material/Logout";
+import MapIcon from "@mui/icons-material/Map";
 import AssignmentIcon from "@mui/icons-material/Assignment";
+import LogoutIcon from "@mui/icons-material/Logout";
 import AppTypography from "../AppTypography";
-import AppButton from "../AppButton";
 
 import { logout as serviceLogout } from "@/features/auth/services/auth.services";
 
-const DRAWER_WIDTH = 260;
+const DRAWER_WIDTH = 270;
 
 interface AdminShellProps {
   children: React.ReactNode;
@@ -42,11 +39,11 @@ export default function AdminShell({ children }: AdminShellProps) {
   const user = useAuthStore((state) => state.user);
   const hasHydrated = useAuthStore((state) => state.hasHydrated);
   const isTokenExpired = useAuthStore((state) => state.isTokenExpired);
-  
+
   const router = useRouter();
   const pathname = usePathname();
   const theme = useTheme();
-  
+
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -58,7 +55,6 @@ export default function AdminShell({ children }: AdminShellProps) {
       serviceLogout();
       router.push("/login?expired=true");
     } else if (user.role !== "admin") {
-      // Redirect staff or unauthorized roles to their portal
       router.push("/portal");
     }
   }, [user, hasHydrated, isTokenExpired, router]);
@@ -68,11 +64,10 @@ export default function AdminShell({ children }: AdminShellProps) {
   };
 
   const menuItems = [
-    { text: "Dashboard & Refill Monitor", icon: <DashboardIcon />, path: "/dashboard" },
-    { text: "User Management", icon: <PeopleIcon />, path: "/staff" },
-    { text: "Penugasan Kru", icon: <AssignmentIcon />, path: "/tasks" },
-    { text: "Area Management (CRUD Area)", icon: <LayersIcon />, path: "/area" },
-    { text: "Design System", icon: <PaletteIcon />, path: "/design-system" },
+    { text: "Dashboard", icon: <DashboardIcon />, path: "/dashboard" },
+    { text: "Staff Management", icon: <PeopleIcon />, path: "/staff" },
+    { text: "Area Management", icon: <MapIcon />, path: "/area" },
+    { text: "Task Management", icon: <AssignmentIcon />, path: "/tasks" },
   ];
 
   const handleLogout = async () => {
@@ -80,7 +75,6 @@ export default function AdminShell({ children }: AdminShellProps) {
     router.push("/login");
   };
 
-  // While hydration is in progress or authorization is being checked, show premium loader
   if (!hasHydrated || !user || user.role !== "admin") {
     return (
       <Box
@@ -91,93 +85,111 @@ export default function AdminShell({ children }: AdminShellProps) {
           flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: theme.palette.background.default,
+          backgroundColor: "#0F172A",
           gap: 2,
         }}
       >
-        <CircularProgress size={50} thickness={4} color="primary" />
-        <AppTypography preset="helperText" color="text.secondary">
-          Memuat kredensial Kembang Tasik...
+        <CircularProgress size={48} thickness={4} sx={{ color: "#FBC02D" }} />
+        <AppTypography preset="helperText" sx={{ color: "#A1A1A1", fontSize: "0.875rem" }}>
+          Memuat Panel Koordinator...
         </AppTypography>
       </Box>
     );
   }
 
   const drawerContent = (
-    <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
-      {/* Drawer Branding Header */}
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        backgroundColor: "#0F172A",
+        color: "#ffffff",
+      }}
+    >
+      {/* Drawer Branding Header (Matches Figma Dashboard.svg) */}
       <Box
         sx={{
           p: 3,
           display: "flex",
           alignItems: "center",
-          gap: 1.5,
+          gap: 1.75,
         }}
       >
-        <Avatar
+        <Box
           sx={{
-            backgroundColor: "#18181b",
-            color: "#ffffff",
-            border: "1px solid #27272a",
-            width: 36,
-            height: 36,
-            fontWeight: 700,
-            fontSize: "0.875rem",
-            position: "relative",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 44,
+            height: 44,
+            borderRadius: "50%",
+            backgroundColor: "#FBC02D",
+            boxShadow: "0 4px 10px rgba(251, 192, 45, 0.35)",
+            flexShrink: 0,
           }}
         >
-          KT
-        </Avatar>
+          <AppTypography
+            sx={{
+              color: "#ffffff",
+              fontSize: "1.35rem",
+              fontWeight: 800,
+              fontFamily: "var(--font-poppins)",
+              lineHeight: 1,
+            }}
+          >
+            W
+          </AppTypography>
+        </Box>
+
         <Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-            <AppTypography
-              preset="cardTitle"
-              sx={{ fontWeight: 700, color: "#ffffff", lineHeight: 1.2, fontSize: "0.95rem" }}
-            >
-              Kembang Tasik
-            </AppTypography>
-            <Box
-              sx={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                backgroundColor: "#eab308",
-              }}
-            />
-          </Box>
+          <AppTypography
+            preset="cardTitle"
+            sx={{
+              fontWeight: 800,
+              color: "#FCFCFD",
+              lineHeight: 1.1,
+              fontSize: "1.15rem",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            Workforce
+          </AppTypography>
           <AppTypography
             preset="helperText"
-            sx={{ color: "#a1a1aa", fontSize: "0.6875rem", fontWeight: 500 }}
+            sx={{ color: "#FBC02D", fontSize: "0.75rem", fontWeight: 700, mt: 0.25 }}
           >
-            WO & Catering Admin
+            Admin Portal
           </AppTypography>
         </Box>
       </Box>
-      <Divider sx={{ borderColor: "#1e1e24" }} />
 
-      {/* Navigation Links */}
-      <List sx={{ px: 1.5, py: 2, flexGrow: 1 }}>
+      <Divider sx={{ borderColor: "#334155" }} />
+
+      {/* Navigation Links (Matches Figma Dashboard.svg) */}
+      <List sx={{ px: 2, py: 3, flexGrow: 1 }}>
         {menuItems.map((item) => {
           const isActive = pathname === item.path;
           return (
-            <ListItem key={item.text} disablePadding sx={{ mb: 0.5 }}>
+            <ListItem key={item.text} disablePadding sx={{ mb: 1.25 }}>
               <ListItemButton
                 onClick={() => {
                   router.push(item.path);
                   if (isMobile) setMobileOpen(false);
                 }}
                 sx={{
-                  borderRadius: 1.5,
-                  px: 1.5,
-                  py: 1,
-                  color: isActive ? "#ffffff" : "#a1a1aa",
-                  backgroundColor: isActive ? "#18181b" : "transparent",
-                  border: isActive ? "1px solid #27272a" : "1px solid transparent",
+                  borderRadius: "8px",
+                  px: 2,
+                  py: 1.25,
+                  backgroundColor: isActive ? "#FBC02D" : "transparent",
+                  color: isActive ? "#0F172A" : "#A1A1A1",
+                  border: isActive ? "1px solid #FFE093" : "1px solid transparent",
+                  boxShadow: isActive ? "0 4px 12px rgba(251, 192, 45, 0.25)" : "none",
                   "&:hover": {
-                    backgroundColor: "#18181b",
-                    color: "#ffffff",
+                    backgroundColor: isActive ? "#FBC02D" : "rgba(255, 255, 255, 0.05)",
+                    color: isActive ? "#0F172A" : "#ffffff",
                     "& .MuiListItemIcon-root": {
-                      color: "#eab308",
+                      color: isActive ? "#0F172A" : "#FBC02D",
                     },
                   },
                   transition: "all 0.15s ease",
@@ -185,9 +197,9 @@ export default function AdminShell({ children }: AdminShellProps) {
               >
                 <ListItemIcon
                   sx={{
-                    minWidth: 32,
-                    color: isActive ? "#eab308" : "#71717a",
-                    fontSize: 20,
+                    minWidth: 36,
+                    color: isActive ? "#0F172A" : "#A1A1A1",
+                    fontSize: 22,
                     transition: "color 0.15s ease",
                   }}
                 >
@@ -198,9 +210,9 @@ export default function AdminShell({ children }: AdminShellProps) {
                     <AppTypography
                       preset="bodyText"
                       sx={{
-                        fontWeight: isActive ? 600 : 500,
-                        fontSize: "0.875rem",
-                        color: isActive ? "#ffffff" : "inherit",
+                        fontWeight: isActive ? 800 : 500,
+                        fontSize: "0.925rem",
+                        color: "inherit",
                       }}
                     >
                       {item.text}
@@ -213,83 +225,71 @@ export default function AdminShell({ children }: AdminShellProps) {
         })}
       </List>
 
-      <Divider sx={{ borderColor: "#1e1e24" }} />
+      <Divider sx={{ borderColor: "#334155" }} />
 
-      {/* Bottom Profile & Logout Area */}
-      <Box sx={{ p: 3, display: "flex", flexDirection: "column", gap: 2 }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <Avatar
+      {/* Bottom Profile & Logout Bar (Matches Figma Dashboard.svg) */}
+      <Box
+        sx={{
+          p: 2.5,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          backgroundColor: "rgba(15, 23, 42, 0.8)",
+        }}
+      >
+        <Box sx={{ overflow: "hidden", pr: 1 }}>
+          <AppTypography
+            preset="bodyText"
             sx={{
-              width: 36,
-              height: 36,
-              fontSize: "0.875rem",
-              fontWeight: 600,
-              bgcolor: theme.palette.mode === "dark" ? "grey.800" : "grey.200",
-              color: "text.primary",
+              fontWeight: 700,
+              fontSize: "0.8rem",
+              color: "#FCFCFD",
+              textOverflow: "ellipsis",
+              overflow: "hidden",
+              whiteSpace: "nowrap",
             }}
           >
-            {user.email.charAt(0).toUpperCase()}
-          </Avatar>
-          <Box sx={{ overflow: "hidden" }}>
-            <AppTypography
-              preset="bodyText"
-              sx={{
-                fontWeight: "bold",
-                fontSize: "0.85rem",
-                textOverflow: "ellipsis",
-                overflow: "hidden",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {user.email}
-            </AppTypography>
-            <AppTypography
-              preset="helperText"
-              sx={{ color: "text.secondary", fontSize: "0.75rem" }}
-            >
-              System Coordinator
-            </AppTypography>
-          </Box>
-        </Box>
-
-        <AppButton
-          onClick={handleLogout}
-          label="Log Out"
-          variant="outlined"
-          color="error"
-          startIcon={<LogoutIcon sx={{ fontSize: 18 }} />}
-          sx={{ width: "100%", py: 1 }}
-        />
-
-        <Box sx={{ mt: 1, textAlign: "center" }}>
+            {user.email}
+          </AppTypography>
           <AppTypography
             preset="helperText"
-            sx={{
-              fontSize: "0.6rem",
-              color: "text.secondary",
-              opacity: 0.5,
-              fontWeight: 600,
-              letterSpacing: "0.08em",
-            }}
+            sx={{ color: "#FBC02D", fontSize: "0.7rem", fontWeight: 600 }}
           >
-            WORKFORCE SYSTEM v0.1.0
+            System Coordinator
           </AppTypography>
         </Box>
+
+        <IconButton
+          onClick={handleLogout}
+          title="Logout"
+          sx={{
+            backgroundColor: "#C5221F",
+            color: "#ffffff",
+            borderRadius: "8px",
+            width: 36,
+            height: 36,
+            "&:hover": {
+              backgroundColor: "#991B1B",
+            },
+          }}
+        >
+          <LogoutIcon sx={{ fontSize: 18 }} />
+        </IconButton>
       </Box>
     </Box>
   );
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      {/* Mobile AppBar Header */}
+    <Box sx={{ display: "flex", minHeight: "100vh", backgroundColor: "#F6F6F6" }}>
+      {/* Mobile Header Bar */}
       {isMobile && (
         <AppBar
           position="fixed"
           elevation={0}
           sx={{
-            backgroundColor: theme.palette.background.paper,
-            borderBottom: `1px solid ${theme.palette.divider}`,
-            color: "text.primary",
+            backgroundColor: "#0F172A",
+            borderBottom: "1px solid #334155",
+            color: "#ffffff",
             width: "100%",
             zIndex: theme.zIndex.drawer + 1,
           }}
@@ -305,8 +305,8 @@ export default function AdminShell({ children }: AdminShellProps) {
               >
                 <MenuIcon />
               </IconButton>
-              <AppTypography preset="sectionTitle" sx={{ fontWeight: 800 }}>
-                Workforce
+              <AppTypography preset="sectionTitle" sx={{ fontWeight: 800, color: "#FCFCFD" }}>
+                Workforce Admin
               </AppTypography>
             </Box>
           </Toolbar>
@@ -317,31 +317,29 @@ export default function AdminShell({ children }: AdminShellProps) {
       <Box
         component="nav"
         sx={{ width: { md: DRAWER_WIDTH }, flexShrink: { md: 0 } }}
-        aria-label="mailbox folders"
+        aria-label="admin navigation"
       >
-        {/* Mobile Drawer */}
         {isMobile ? (
           <Drawer
             variant="temporary"
             open={mobileOpen}
             onClose={handleDrawerToggle}
             ModalProps={{
-              keepMounted: true, // Better open performance on mobile.
+              keepMounted: true,
             }}
             sx={{
               display: { xs: "block", md: "none" },
               "& .MuiDrawer-paper": {
                 boxSizing: "border-box",
                 width: DRAWER_WIDTH,
-                backgroundColor: theme.palette.background.paper,
-                borderRight: `1px solid ${theme.palette.divider}`,
+                backgroundColor: "#0F172A",
+                borderRight: "1px solid #334155",
               },
             }}
           >
             {drawerContent}
           </Drawer>
         ) : (
-          /* Desktop Sidebar Drawer */
           <Drawer
             variant="permanent"
             sx={{
@@ -349,8 +347,8 @@ export default function AdminShell({ children }: AdminShellProps) {
               "& .MuiDrawer-paper": {
                 boxSizing: "border-box",
                 width: DRAWER_WIDTH,
-                backgroundColor: theme.palette.background.paper,
-                borderRight: `1px solid ${theme.palette.divider}`,
+                backgroundColor: "#0F172A",
+                borderRight: "1px solid #334155",
               },
             }}
             open
@@ -365,10 +363,11 @@ export default function AdminShell({ children }: AdminShellProps) {
         component="main"
         sx={{
           flexGrow: 1,
-          p: { xs: 3, sm: 4 },
+          p: { xs: 2.5, sm: 4 },
           width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
-          mt: isMobile ? "64px" : 0, // Space for mobile header app bar
-          backgroundColor: theme.palette.background.default,
+          mt: isMobile ? "64px" : 0,
+          backgroundColor: "#F6F6F6",
+          minHeight: "100vh",
         }}
       >
         {children}

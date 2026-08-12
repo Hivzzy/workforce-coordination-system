@@ -10,19 +10,17 @@ import {
   Box,
   Divider,
   Paper,
-  LinearProgress,
   Chip,
+  Button,
 } from "@mui/material";
-import PeopleOutlinedIcon from "@mui/icons-material/PeopleOutlined";
-import MapOutlinedIcon from "@mui/icons-material/MapOutlined";
-import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import CheckIcon from "@mui/icons-material/Check";
 import TerminalOutlinedIcon from "@mui/icons-material/TerminalOutlined";
-import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
-import WarningAmberOutlinedIcon from "@mui/icons-material/WarningAmberOutlined";
+import EmergencyShareIcon from "@mui/icons-material/Campaign";
 import AppTypography from "@/components/AppTypography";
 import AdminShell from "@/components/AdminShell";
-import EmergencyButton from "@/components/EmergencyButton";
-import AppButton from "@/components/AppButton";
 import { useAdminGuard } from "@/hooks/useAdminGuard";
 import { apiFetch } from "@/utils/api-client";
 
@@ -32,34 +30,6 @@ interface SystemStateResponse {
   refillStatus: string;
 }
 
-// ─── Animated Counter Hook ──────────────────────────────
-function useCountUp(target: number, duration = 600) {
-  const [value, setValue] = useState(0);
-  const prevTarget = useRef(target);
-
-  useEffect(() => {
-    if (target === prevTarget.current && value === target) return;
-    prevTarget.current = target;
-
-    const startTime = performance.now();
-    const startValue = value;
-
-    const animate = (now: number) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const current = Math.round(startValue + (target - startValue) * eased);
-      setValue(current);
-      if (progress < 1) requestAnimationFrame(animate);
-    };
-
-    requestAnimationFrame(animate);
-  }, [target, duration]);
-
-  return value;
-}
-
-// ─── Dashboard Page ─────────────────────────────────────
 export default function DashboardPage() {
   const { isReady } = useAdminGuard();
   const { staffs, fetchStaffs } = useStaffStore();
@@ -95,7 +65,7 @@ export default function DashboardPage() {
           if (data.emergencyActive !== prevEmergencyRef.current) {
             addLog(
               data.emergencyActive
-                ? "🚨 EMERGENCY: All field crew dispatched to Gathering Area."
+                ? "🚨 EMERGENCY: Dispatched all field crew to Gathering Area."
                 : "✅ RESOLVED: Emergency dispatch cleared."
             );
             prevEmergencyRef.current = data.emergencyActive;
@@ -103,7 +73,7 @@ export default function DashboardPage() {
           if (data.helpStatus !== prevHelpRef.current) {
             addLog(
               data.helpStatus !== "idle"
-                ? `⚠️ HELP NEEDED: Assistance requested at Area: ${data.helpStatus}.`
+                ? `⚠️ HELP REQUEST: Assistance requested at Area: ${data.helpStatus}.`
                 : "✅ RESOLVED: Assistance call cleared."
             );
             prevHelpRef.current = data.helpStatus;
@@ -111,7 +81,7 @@ export default function DashboardPage() {
           if (data.refillStatus !== prevRefillRef.current) {
             addLog(
               data.refillStatus !== "idle"
-                ? `📦 REFILL REQUEST: Catering refill requested at Area: ${data.refillStatus}.`
+                ? `🔄 REFILL REQUEST: Catering refill requested at Area: ${data.refillStatus}.`
                 : "✅ RESOLVED: Refill request completed."
             );
             prevRefillRef.current = data.refillStatus;
@@ -131,58 +101,13 @@ export default function DashboardPage() {
     return () => clearInterval(interval);
   }, [fetchStaffs, fetchAreas]);
 
-  // Animated counters
-  const animatedStaffCount = useCountUp(staffs.length);
-  const animatedAreaCount = useCountUp(areas.length);
-
-  // Derived stats
-  const assignedStaffs = staffs.filter((s) => !!s.assignedAreaId);
-  const assignedRatio = staffs.length > 0 ? (assignedStaffs.length / staffs.length) * 100 : 0;
-  const animatedAssigned = useCountUp(assignedStaffs.length);
-
-  // Dynamic system status
-  const getSystemStatus = () => {
-    if (emergencyActive)
-      return {
-        label: "EMERGENCY ACTIVE",
-        color: "#ef4444",
-        bg: "rgba(239, 68, 68, 0.1)",
-        border: "rgba(239, 68, 68, 0.3)",
-        icon: <WarningAmberOutlinedIcon sx={{ fontSize: 20 }} />,
-      };
-    if (helpStatus !== "idle")
-      return {
-        label: `HELP: ${helpStatus}`,
-        color: "#f97316",
-        bg: "rgba(249, 115, 22, 0.1)",
-        border: "rgba(249, 115, 22, 0.3)",
-        icon: <WarningAmberOutlinedIcon sx={{ fontSize: 20 }} />,
-      };
-    if (refillStatus !== "idle")
-      return {
-        label: `REFILL: ${refillStatus}`,
-        color: "#eab308",
-        bg: "rgba(234, 179, 8, 0.1)",
-        border: "rgba(234, 179, 8, 0.3)",
-        icon: <ShieldOutlinedIcon sx={{ fontSize: 20 }} />,
-      };
-    return {
-      label: "SYSTEM OPTIMAL",
-      color: "#22c55e",
-      bg: "rgba(34, 197, 94, 0.1)",
-      border: "rgba(34, 197, 94, 0.3)",
-      icon: <CheckCircleOutlinedIcon sx={{ fontSize: 20 }} />,
-    };
-  };
-  const systemStatus = getSystemStatus();
-
   const toggleEmergency = async () => {
     const nextState = !emergencyActive;
     prevEmergencyRef.current = nextState;
     setEmergencyActive(nextState);
     addLog(
       nextState
-        ? "🚨 EMERGENCY: All field crew dispatched to Gathering Area."
+        ? "🚨 EMERGENCY: Dispatched all field crew to Gathering Area."
         : "✅ RESOLVED: Emergency dispatch cleared."
     );
     try {
@@ -195,7 +120,7 @@ export default function DashboardPage() {
     }
   };
 
-  const toggleHelp = async () => {
+  const resolveHelp = async () => {
     const nextState = "idle";
     prevHelpRef.current = nextState;
     setHelpStatus(nextState);
@@ -210,7 +135,7 @@ export default function DashboardPage() {
     }
   };
 
-  const toggleRefill = async () => {
+  const resolveRefill = async () => {
     const nextState = "idle";
     prevRefillRef.current = nextState;
     setRefillStatus(nextState);
@@ -227,297 +152,316 @@ export default function DashboardPage() {
 
   return (
     <AdminShell>
-      {/* Page Title Header */}
-      <Box sx={{ mb: 4, display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-        <Box>
+      {/* Top Header & System Status Card (Exact Figma Dashboard.svg) */}
+      <Grid container spacing={3} sx={{ mb: 4, alignItems: "center" }}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <AppTypography
             preset="pageTitle"
-            sx={{ fontWeight: 700, fontSize: "1.5rem", letterSpacing: "-0.02em", color: "#ffffff" }}
+            sx={{
+              fontWeight: 800,
+              fontSize: "1.85rem",
+              letterSpacing: "-0.03em",
+              color: "#0F172A",
+              mb: 0.75,
+            }}
           >
-            Dashboard & Live Coordination Monitor
+            Pusat Koordinasi Lapangan
           </AppTypography>
-          <AppTypography preset="helperText" sx={{ color: "#a1a1aa", mt: 0.5 }}>
-            Real-time workforce deployment, area coverage, and event alert monitoring.
+          <AppTypography
+            preset="helperText"
+            sx={{ color: "#64748B", fontSize: "0.925rem", maxWidth: 650 }}
+          >
+            Simulasikan aksi cepat dari Admin (Emergensi) maupun permintaan bantuan serta isi ulang logistik dari Staff di lapangan.
           </AppTypography>
-        </Box>
-        <Chip
-          icon={systemStatus.icon}
-          label={systemStatus.label}
-          sx={{
-            backgroundColor: systemStatus.bg,
-            color: systemStatus.color,
-            border: `1px solid ${systemStatus.border}`,
-            fontWeight: 600,
-            fontSize: "0.75rem",
-            px: 1,
-            py: 0.5,
-            height: 32,
-            "& .MuiChip-icon": { color: systemStatus.color },
-          }}
-        />
-      </Box>
-
-      {/* KPI Stats Cards */}
-      <Grid container spacing={2.5} sx={{ mb: 4 }}>
-        {/* Total Staff Card */}
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ p: 2.5, height: "100%" }}>
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
-              <AppTypography preset="helperText" sx={{ color: "#a1a1aa", fontWeight: 600, fontSize: "0.75rem" }}>
-                TOTAL WORKFORCE
-              </AppTypography>
-              <Box
-                sx={{
-                  p: 1,
-                  borderRadius: 1.5,
-                  backgroundColor: "#18181b",
-                  border: "1px solid #27272a",
-                  color: "#a1a1aa",
-                  display: "flex",
-                }}
-              >
-                <PeopleOutlinedIcon sx={{ fontSize: 18 }} />
-              </Box>
-            </Box>
-            <AppTypography preset="pageTitle" sx={{ fontWeight: 700, fontSize: "2rem", color: "#ffffff" }}>
-              {animatedStaffCount}
-            </AppTypography>
-            <AppTypography preset="helperText" sx={{ color: "#71717a", fontSize: "0.75rem", mt: 0.5 }}>
-              Registered active staff members
-            </AppTypography>
-          </Card>
         </Grid>
 
-        {/* Total Area Card */}
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ p: 2.5, height: "100%" }}>
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
-              <AppTypography preset="helperText" sx={{ color: "#a1a1aa", fontWeight: 600, fontSize: "0.75rem" }}>
-                EVENT ZONES
-              </AppTypography>
-              <Box
-                sx={{
-                  p: 1,
-                  borderRadius: 1.5,
-                  backgroundColor: "#18181b",
-                  border: "1px solid #27272a",
-                  color: "#a1a1aa",
-                  display: "flex",
-                }}
-              >
-                <MapOutlinedIcon sx={{ fontSize: 18 }} />
-              </Box>
-            </Box>
-            <AppTypography preset="pageTitle" sx={{ fontWeight: 700, fontSize: "2rem", color: "#ffffff" }}>
-              {animatedAreaCount}
-            </AppTypography>
-            <AppTypography preset="helperText" sx={{ color: "#71717a", fontSize: "0.75rem", mt: 0.5 }}>
-              Configured venue layout areas
-            </AppTypography>
-          </Card>
-        </Grid>
-
-        {/* Staff Assignment Ratio Card */}
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ p: 2.5, height: "100%" }}>
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
-              <AppTypography preset="helperText" sx={{ color: "#a1a1aa", fontWeight: 600, fontSize: "0.75rem" }}>
-                DEPLOYMENT RATIO
-              </AppTypography>
-              <Box
-                sx={{
-                  p: 1,
-                  borderRadius: 1.5,
-                  backgroundColor: "#18181b",
-                  border: "1px solid #27272a",
-                  color: "#eab308",
-                  display: "flex",
-                }}
-              >
-                <ShieldOutlinedIcon sx={{ fontSize: 18 }} />
-              </Box>
-            </Box>
-            <AppTypography preset="pageTitle" sx={{ fontWeight: 700, fontSize: "2rem", color: "#ffffff" }}>
-              {animatedAssigned}/{staffs.length}
-            </AppTypography>
-            <Box sx={{ mt: 1.5 }}>
-              <LinearProgress
-                variant="determinate"
-                value={assignedRatio}
-                sx={{
-                  height: 4,
-                  borderRadius: 2,
-                  backgroundColor: "#18181b",
-                  "& .MuiLinearProgress-bar": {
-                    borderRadius: 2,
-                    backgroundColor: "#eab308",
-                  },
-                }}
-              />
-            </Box>
-            <AppTypography preset="helperText" sx={{ color: "#71717a", fontSize: "0.75rem", mt: 0.75 }}>
-              {Math.round(assignedRatio)}% assigned to specific zones
-            </AppTypography>
-          </Card>
-        </Grid>
-
-        {/* System Alert Monitor */}
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card sx={{ p: 2.5, height: "100%" }}>
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
-              <AppTypography preset="helperText" sx={{ color: "#a1a1aa", fontWeight: 600, fontSize: "0.75rem" }}>
-                ACTIVE ALERTS
-              </AppTypography>
-              <Box
-                sx={{
-                  p: 1,
-                  borderRadius: 1.5,
-                  backgroundColor: systemStatus.bg,
-                  border: `1px solid ${systemStatus.border}`,
-                  color: systemStatus.color,
-                  display: "flex",
-                }}
-              >
-                {systemStatus.icon}
-              </Box>
-            </Box>
-            <AppTypography preset="pageTitle" sx={{ fontWeight: 700, fontSize: "1.25rem", color: systemStatus.color }}>
-              {systemStatus.label}
-            </AppTypography>
-            <AppTypography preset="helperText" sx={{ color: "#71717a", fontSize: "0.75rem", mt: 0.5 }}>
-              Live signals from field devices
-            </AppTypography>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Main Operations & Live Logs Feed */}
-      <Grid container spacing={3}>
-        {/* Coordination Control Panel */}
-        <Grid size={{ xs: 12, lg: 6 }}>
-          <Card sx={{ height: "100%", p: 1 }}>
-            <CardContent>
-              <AppTypography preset="sectionTitle" sx={{ mb: 1, fontWeight: 700, fontSize: "1.1rem", color: "#ffffff" }}>
-                Coordination Controls
-              </AppTypography>
-              <AppTypography preset="helperText" sx={{ mb: 3, color: "#a1a1aa" }}>
-                Trigger site-wide emergency gathering dispatch or manage live field requests.
-              </AppTypography>
-
-              <Box sx={{ mb: 3 }}>
-                <AppTypography
-                  preset="helperText"
-                  sx={{ fontWeight: 600, mb: 1.5, color: "#71717a", fontSize: "0.75rem", textTransform: "uppercase" }}
-                >
-                  Site Dispatch
-                </AppTypography>
-                <EmergencyButton active={emergencyActive} onClick={toggleEmergency} />
-              </Box>
-
-              <Divider sx={{ my: 2.5, borderColor: "#1e1e24" }} />
-
+        <Grid size={{ xs: 12, md: 4 }} sx={{ display: "flex", justifyContent: { xs: "flex-start", md: "flex-end" } }}>
+          <Card
+            sx={{
+              backgroundColor: emergencyActive ? "#C5221F" : "#1F7D53",
+              borderRadius: "12px",
+              border: `1.5px solid ${emergencyActive ? "#EF4444" : "#6EAE92"}`,
+              color: "#ffffff",
+              p: 2,
+              px: 3,
+              width: "100%",
+              maxWidth: 360,
+              boxShadow: "0 10px 25px rgba(0, 0, 0, 0.1)",
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.75 }}>
+              <CheckCircleIcon sx={{ fontSize: 34, color: "#ffffff" }} />
               <Box>
                 <AppTypography
                   preset="helperText"
-                  sx={{ fontWeight: 600, mb: 1.5, color: "#71717a", fontSize: "0.75rem", textTransform: "uppercase" }}
+                  sx={{
+                    color: "rgba(255, 255, 255, 0.85)",
+                    fontSize: "0.75rem",
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                  }}
                 >
-                  Live Signal Resolution
+                  Status Sistem
                 </AppTypography>
-                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1.5 }}>
-                  {helpStatus !== "idle" ? (
-                    <AppButton
-                      variant="contained"
-                      color="warning"
-                      label={`Resolve Help (${helpStatus})`}
-                      onClick={toggleHelp}
-                    />
-                  ) : (
-                    <AppButton
-                      variant="outlined"
-                      label="No Active Help Call"
-                      disabled
-                    />
-                  )}
-
-                  {refillStatus !== "idle" ? (
-                    <AppButton
-                      variant="contained"
-                      color="primary"
-                      label={`Resolve Refill (${refillStatus})`}
-                      onClick={toggleRefill}
-                    />
-                  ) : (
-                    <AppButton
-                      variant="outlined"
-                      label="No Active Refill Call"
-                      disabled
-                    />
-                  )}
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Real-time System Feed Logs */}
-        <Grid size={{ xs: 12, lg: 6 }}>
-          <Card sx={{ height: "100%", display: "flex", flexDirection: "column", p: 1 }}>
-            <CardContent sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-                <TerminalOutlinedIcon sx={{ color: "#eab308", fontSize: 20 }} />
-                <AppTypography preset="sectionTitle" sx={{ fontWeight: 700, fontSize: "1.1rem", color: "#ffffff" }}>
-                  Live Operations Feed
+                <AppTypography
+                  preset="sectionTitle"
+                  sx={{ color: "#ffffff", fontWeight: 800, fontSize: "1.25rem", lineHeight: 1.2 }}
+                >
+                  {emergencyActive ? "Darurat (Gathering)" : "Kondisi Aman"}
                 </AppTypography>
               </Box>
-
-              <Paper
-                variant="outlined"
-                sx={{
-                  flexGrow: 1,
-                  minHeight: 240,
-                  maxHeight: 320,
-                  overflowY: "auto",
-                  p: 2,
-                  backgroundColor: "#09090b",
-                  borderColor: "#1e1e24",
-                  borderRadius: 2,
-                }}
-              >
-                {logs.length === 0 ? (
-                  <AppTypography preset="helperText" sx={{ color: "#71717a", textAlign: "center", py: 4 }}>
-                    No system log events recorded.
-                  </AppTypography>
-                ) : (
-                  logs.map((log, index) => (
-                    <Box
-                      key={index}
-                      className={index === 0 ? "animate-fade-in" : ""}
-                      sx={{ mb: 1, borderBottom: "1px solid #141418", pb: 0.75 }}
-                    >
-                      <AppTypography
-                        preset="helperText"
-                        sx={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: "0.8125rem",
-                          color: log.includes("🚨")
-                            ? "#ef4444"
-                            : log.includes("⚠️")
-                            ? "#f97316"
-                            : log.includes("📦")
-                            ? "#eab308"
-                            : "#a1a1aa",
-                        }}
-                      >
-                        {log}
-                      </AppTypography>
-                    </Box>
-                  ))
-                )}
-              </Paper>
-            </CardContent>
+            </Box>
           </Card>
         </Grid>
       </Grid>
+
+      {/* Main Operations Cards (Figma Dashboard.svg layout) */}
+      <Grid container spacing={3} sx={{ mb: 4 }}>
+        {/* Emergency Trigger Card (Red Box) */}
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Card
+            sx={{
+              backgroundColor: "#ffffff",
+              borderRadius: "12px",
+              border: "1px solid #E2E8F0",
+              p: 3,
+              height: "100%",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.04)",
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+              <EmergencyShareIcon sx={{ color: "#EF4444", fontSize: 22 }} />
+              <AppTypography preset="cardTitle" sx={{ fontWeight: 800, fontSize: "1.1rem", color: "#0F172A" }}>
+                Tombol Darurat (Emergensi)
+              </AppTypography>
+            </Box>
+
+            <AppTypography preset="helperText" sx={{ color: "#64748B", fontSize: "0.85rem", mb: 3 }}>
+              Kirim sinyal darurat berkumpul secara global ke seluruh staff di lapangan.
+            </AppTypography>
+
+            <Box sx={{ mt: "auto" }}>
+              <Button
+                fullWidth
+                onClick={toggleEmergency}
+                sx={{
+                  py: 1.5,
+                  borderRadius: "8px",
+                  backgroundColor: emergencyActive ? "#15803D" : "#C5221F",
+                  color: "#ffffff",
+                  fontWeight: 800,
+                  fontSize: "0.95rem",
+                  textTransform: "none",
+                  boxShadow: emergencyActive
+                    ? "0 4px 14px rgba(21, 128, 61, 0.4)"
+                    : "0 4px 14px rgba(197, 34, 31, 0.4)",
+                  "&:hover": {
+                    backgroundColor: emergencyActive ? "#166534" : "#991B1B",
+                  },
+                }}
+              >
+                {emergencyActive ? "✅ Matikan Sinyal Darurat" : "🚨 Panggil Semua Staff"}
+              </Button>
+            </Box>
+          </Card>
+        </Grid>
+
+        {/* Live Help Request Card */}
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Card
+            sx={{
+              backgroundColor: "#ffffff",
+              borderRadius: "12px",
+              border: "1px solid #E2E8F0",
+              p: 3,
+              height: "100%",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.04)",
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+              <WarningAmberIcon sx={{ color: "#F59E0B", fontSize: 22 }} />
+              <AppTypography preset="cardTitle" sx={{ fontWeight: 800, fontSize: "1.1rem", color: "#0F172A" }}>
+                Minta Bantuan Koordinasi
+              </AppTypography>
+            </Box>
+
+            <AppTypography preset="helperText" sx={{ color: "#64748B", fontSize: "0.85rem", mb: 2 }}>
+              Sinyal bantuan aktif dari staff yang memerlukan dukungan koordinator di area penugasan.
+            </AppTypography>
+
+            <Box sx={{ mt: "auto" }}>
+              {helpStatus !== "idle" ? (
+                <Box sx={{ p: 2, borderRadius: "8px", backgroundColor: "#FEF3C7", border: "1px solid #FCD34D", mb: 2 }}>
+                  <AppTypography preset="helperText" sx={{ color: "#92400E", fontWeight: 700, fontSize: "0.75rem", textTransform: "uppercase" }}>
+                    Area Minta Bantuan:
+                  </AppTypography>
+                  <AppTypography preset="cardTitle" sx={{ color: "#78350F", fontWeight: 800, fontSize: "1.05rem" }}>
+                    📍 {helpStatus}
+                  </AppTypography>
+                </Box>
+              ) : (
+                <Box sx={{ p: 2, borderRadius: "8px", backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0", mb: 2, textAlign: "center" }}>
+                  <AppTypography preset="helperText" sx={{ color: "#94A3B8", fontWeight: 600 }}>
+                    Tidak ada panggilan bantuan aktif
+                  </AppTypography>
+                </Box>
+              )}
+
+              <Button
+                fullWidth
+                disabled={helpStatus === "idle"}
+                onClick={resolveHelp}
+                startIcon={<CheckIcon />}
+                sx={{
+                  py: 1.2,
+                  borderRadius: "8px",
+                  backgroundColor: "#10B981",
+                  color: "#ffffff",
+                  fontWeight: 700,
+                  fontSize: "0.9rem",
+                  textTransform: "none",
+                  "&:hover": { backgroundColor: "#059669" },
+                  "&.Mui-disabled": { backgroundColor: "#E2E8F0", color: "#94A3B8" },
+                }}
+              >
+                Selesaikan Bantuan
+              </Button>
+            </Box>
+          </Card>
+        </Grid>
+
+        {/* Live Refill Request Card */}
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Card
+            sx={{
+              backgroundColor: "#ffffff",
+              borderRadius: "12px",
+              border: "1px solid #E2E8F0",
+              p: 3,
+              height: "100%",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "0 4px 12px rgba(0, 0, 0, 0.04)",
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+              <RefreshIcon sx={{ color: "#3B82F6", fontSize: 22 }} />
+              <AppTypography preset="cardTitle" sx={{ fontWeight: 800, fontSize: "1.1rem", color: "#0F172A" }}>
+                Minta Refill Logistik
+              </AppTypography>
+            </Box>
+
+            <AppTypography preset="helperText" sx={{ color: "#64748B", fontSize: "0.85rem", mb: 2 }}>
+              Permintaan pasokan ulang perlengkapan/konsumsi dari staff di zona penugasan.
+            </AppTypography>
+
+            <Box sx={{ mt: "auto" }}>
+              {refillStatus !== "idle" ? (
+                <Box sx={{ p: 2, borderRadius: "8px", backgroundColor: "#DBEAFE", border: "1px solid #BFDBFE", mb: 2 }}>
+                  <AppTypography preset="helperText" sx={{ color: "#1E40AF", fontWeight: 700, fontSize: "0.75rem", textTransform: "uppercase" }}>
+                    Area Minta Refill:
+                  </AppTypography>
+                  <AppTypography preset="cardTitle" sx={{ color: "#1E3A8A", fontWeight: 800, fontSize: "1.05rem" }}>
+                    📦 {refillStatus}
+                  </AppTypography>
+                </Box>
+              ) : (
+                <Box sx={{ p: 2, borderRadius: "8px", backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0", mb: 2, textAlign: "center" }}>
+                  <AppTypography preset="helperText" sx={{ color: "#94A3B8", fontWeight: 600 }}>
+                    Tidak ada permintaan refill aktif
+                  </AppTypography>
+                </Box>
+              )}
+
+              <Button
+                fullWidth
+                disabled={refillStatus === "idle"}
+                onClick={resolveRefill}
+                startIcon={<CheckIcon />}
+                sx={{
+                  py: 1.2,
+                  borderRadius: "8px",
+                  backgroundColor: "#10B981",
+                  color: "#ffffff",
+                  fontWeight: 700,
+                  fontSize: "0.9rem",
+                  textTransform: "none",
+                  "&:hover": { backgroundColor: "#059669" },
+                  "&.Mui-disabled": { backgroundColor: "#E2E8F0", color: "#94A3B8" },
+                }}
+              >
+                Selesaikan Refill
+              </Button>
+            </Box>
+          </Card>
+        </Grid>
+      </Grid>
+
+      {/* Real-time System Feed Logs */}
+      <Card
+        sx={{
+          backgroundColor: "#ffffff",
+          borderRadius: "12px",
+          border: "1px solid #E2E8F0",
+          p: 3,
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.04)",
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+          <TerminalOutlinedIcon sx={{ color: "#FBC02D", fontSize: 22 }} />
+          <AppTypography preset="sectionTitle" sx={{ fontWeight: 800, fontSize: "1.15rem", color: "#0F172A" }}>
+            Live Operations Feed
+          </AppTypography>
+        </Box>
+
+        <Paper
+          variant="outlined"
+          sx={{
+            minHeight: 200,
+            maxHeight: 300,
+            overflowY: "auto",
+            p: 2,
+            backgroundColor: "#0F172A",
+            borderColor: "#1E293B",
+            borderRadius: "8px",
+          }}
+        >
+          {logs.length === 0 ? (
+            <AppTypography preset="helperText" sx={{ color: "#64748B", textAlign: "center", py: 4 }}>
+              Belum ada log operasi tercatat.
+            </AppTypography>
+          ) : (
+            logs.map((log, index) => (
+              <Box
+                key={index}
+                sx={{ mb: 1, borderBottom: "1px solid #1E293B", pb: 0.75 }}
+              >
+                <AppTypography
+                  preset="helperText"
+                  sx={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "0.825rem",
+                    color: log.includes("🚨")
+                      ? "#EF4444"
+                      : log.includes("⚠️")
+                      ? "#F59E0B"
+                      : log.includes("🔄")
+                      ? "#3B82F6"
+                      : "#94A3B8",
+                  }}
+                >
+                  {log}
+                </AppTypography>
+              </Box>
+            ))
+          )}
+        </Paper>
+      </Card>
     </AdminShell>
   );
 }

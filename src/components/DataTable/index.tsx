@@ -33,31 +33,29 @@ export default function DataTable<T extends { id: string | number }>({
   return (
     <TableContainer
       component={Paper}
-      variant="outlined"
+      elevation={0}
       sx={{
-        borderRadius: 2,
+        borderRadius: "12px",
         overflow: "hidden",
-        backgroundColor: "#121215",
-        borderColor: "#1e1e24",
-        boxShadow: "none",
+        backgroundColor: "#ffffff",
+        border: "1px solid #E2E8F0",
       }}
     >
       <Table sx={{ minWidth: 650 }} aria-label="custom data table">
-        <TableHead sx={{ backgroundColor: "#18181b" }}>
+        <TableHead sx={{ backgroundColor: "#131927" }}>
           <TableRow>
             {columns.map((col) => (
               <TableCell
                 key={col.id}
                 align={col.align || "left"}
                 sx={{
-                  fontWeight: 600,
-                  py: 1.5,
-                  px: 2,
-                  color: "#a1a1aa",
-                  fontSize: "0.75rem",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                  borderBottom: "1px solid #1e1e24",
+                  fontWeight: 700,
+                  py: 2,
+                  px: 2.5,
+                  color: "#FCFCFD",
+                  fontSize: "0.825rem",
+                  letterSpacing: "0.02em",
+                  borderBottom: "none",
                   fontFamily: "var(--font-poppins)",
                 }}
               >
@@ -70,7 +68,7 @@ export default function DataTable<T extends { id: string | number }>({
           {rows.length === 0 ? (
             <TableRow>
               <TableCell colSpan={columns.length} align="center" sx={{ py: 6, borderBottom: "none" }}>
-                <Typography color="#71717a" variant="body2" sx={{ fontFamily: "var(--font-poppins)" }}>
+                <Typography color="#64748B" variant="body2" sx={{ fontFamily: "var(--font-poppins)", fontWeight: 500 }}>
                   {emptyMessage}
                 </Typography>
               </TableCell>
@@ -80,7 +78,7 @@ export default function DataTable<T extends { id: string | number }>({
               <TableRow
                 key={row.id || index}
                 sx={{
-                  "&:hover": { backgroundColor: "#18181b" },
+                  "&:hover": { backgroundColor: "#F8FAFC" },
                   transition: "background-color 0.15s ease",
                   "&:last-child td, &:last-child th": { borderBottom: 0 },
                 }}
@@ -94,11 +92,11 @@ export default function DataTable<T extends { id: string | number }>({
                       key={col.id}
                       align={col.align || "left"}
                       sx={{
-                        py: 1.75,
-                        px: 2,
-                        color: "#ffffff",
-                        fontSize: "0.875rem",
-                        borderBottom: "1px solid #1e1e24",
+                        py: 2,
+                        px: 2.5,
+                        color: "#0F172A",
+                        fontSize: "0.9rem",
+                        borderBottom: "1px solid #F1F5F9",
                         fontFamily: "var(--font-poppins)",
                       }}
                     >
