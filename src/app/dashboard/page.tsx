@@ -1,142 +1,140 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { useStaffStore } from "@/features/staff/store/staff.store";
-import { useAreaStore } from "@/features/area/store/area.store";
 import {
-  Grid,
-  Card,
   Box,
-  Paper,
+  Card,
+  CardContent,
   Button,
+  Chip,
+  Paper,
+  Grid,
+  Divider,
 } from "@mui/material";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import EmergencyShareIcon from "@mui/icons-material/EmergencyShare";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import RefreshIcon from "@mui/icons-material/Refresh";
-import CheckIcon from "@mui/icons-material/Check";
-import TerminalOutlinedIcon from "@mui/icons-material/TerminalOutlined";
-import EmergencyShareIcon from "@mui/icons-material/Campaign";
+import LocalDiningIcon from "@mui/icons-material/LocalDining";
 import AppTypography from "@/components/AppTypography";
+import DataTable, { Column } from "@/components/DataTable";
 import AdminShell from "@/components/AdminShell";
+
+import { useStaffStore } from "@/features/staff/store/staff.store";
+import { useAreaStore } from "@/features/area/store/area.store";
+import { useTaskStore } from "@/features/task/store/task.store";
 import { useAdminGuard } from "@/hooks/useAdminGuard";
 import { apiFetch } from "@/utils/api-client";
 import { globalWebSocket } from "@/utils/websocket-client";
 import { playEmergencyAlarm } from "@/utils/audio-alert";
 
+interface AreaSignalInfo {
+  areaId: string;
+  areaName: string;
+  helpActive?: boolean;
+  refillActive?: boolean;
+}
+
 interface SystemStateResponse {
   emergencyActive: boolean;
-  helpStatus: string;
-  refillStatus: string;
+  areaSignals?: Record<string, AreaSignalInfo>;
+  helpStatus?: string;
+  refillStatus?: string;
 }
 
 export default function DashboardPage() {
   const { isReady } = useAdminGuard();
-  const { fetchStaffs } = useStaffStore();
-  const { fetchAreas } = useAreaStore();
+
+  const { staffs, fetchStaffs } = useStaffStore();
+  const { areas, fetchAreas } = useAreaStore();
+  const { tasks, fetchTasks } = useTaskStore();
 
   const [emergencyActive, setEmergencyActive] = useState(false);
-  const [helpStatus, setHelpStatus] = useState("idle");
-  const [refillStatus, setRefillStatus] = useState("idle");
-  const [logs, setLogs] = useState<string[]>([
-    "⚡ Real-Time WebSocket Connected (/ws-coordination)",
-    "🏁 System initialized. Monitoring live workforce status.",
-  ]);
+  const [areaSignals, setAreaSignals] = useState<Record<string, AreaSignalInfo>>({});
+  const [operationsLogs, setOperationsLogs] = useState<string[]>([]);
 
   const prevEmergencyRef = useRef(false);
-  const prevHelpRef = useRef("idle");
-  const prevRefillRef = useRef("idle");
 
   const addLog = (message: string) => {
-    setLogs((prev) => [
-      `[${new Date().toLocaleTimeString("id-ID")}] ${message}`,
-      ...prev.slice(0, 19),
-    ]);
+    const timestamp = new Date().toLocaleTimeString();
+    setOperationsLogs((prev) => [`[${timestamp}] ${message}`, ...prev.slice(0, 19)]);
   };
 
   useEffect(() => {
+    if (!isReady) return;
+
     fetchStaffs();
     fetchAreas();
+    fetchTasks();
 
-    const fetchSystemState = async () => {
+    const syncDashboardState = async () => {
       try {
         const data = await apiFetch<SystemStateResponse>("/system-state");
         if (data) {
-          setEmergencyActive(data.emergencyActive);
-          setHelpStatus(data.helpStatus);
-          setRefillStatus(data.refillStatus);
+          if (data.emergencyActive && !prevEmergencyRef.current) {
+            playEmergencyAlarm();
+          }
           prevEmergencyRef.current = data.emergencyActive;
-          prevHelpRef.current = data.helpStatus;
-          prevRefillRef.current = data.refillStatus;
+          setEmergencyActive(data.emergencyActive);
+          setAreaSignals(data.areaSignals || {});
         }
       } catch (err) {
-        console.error("Failed to fetch system state:", err);
+        console.error("Failed to fetch system state in dashboard:", err);
       }
     };
 
-    fetchSystemState();
+    syncDashboardState();
 
-    // ⚡ Connect to WebSocket for instant STOMP updates (< 50ms)
+    // ⚡ Real-Time WebSocket STOMP Sync (< 50ms)
     globalWebSocket.connect(() => {
-      // Subscribe to Emergency Alert topic
       globalWebSocket.subscribe("/topic/emergency", (msg) => {
         try {
           const payload = JSON.parse(msg.body);
           if (payload.active !== undefined) {
+            if (payload.active && !prevEmergencyRef.current) {
+              playEmergencyAlarm();
+            }
+            prevEmergencyRef.current = payload.active;
             setEmergencyActive(payload.active);
-            addLog(
-              payload.active
-                ? "🚨 STOMP EMERGENCY: Dispatched all field crew to Gathering Area."
-                : "✅ STOMP RESOLVED: Emergency dispatch cleared."
-            );
           }
         } catch (e) {
-          console.error("Error parsing emergency socket payload:", e);
+          console.error("Error parsing emergency socket:", e);
         }
       });
 
-      // Subscribe to Signal topic
-      globalWebSocket.subscribe("/topic/signals", (msg) => {
-        try {
-          const payload = JSON.parse(msg.body);
-          if (payload.signalType === "HELP") {
-            setHelpStatus(payload.areaName);
-            addLog(`⚠️ STOMP HELP REQUEST: Signal received for Area: ${payload.areaName}`);
-          } else if (payload.signalType === "REFILL") {
-            setRefillStatus(payload.areaName);
-            addLog(`🔄 STOMP REFILL REQUEST: Catering refill requested at Area: ${payload.areaName}`);
-          }
-        } catch (e) {
-          console.error("Error parsing signal socket payload:", e);
-        }
-      });
-
-      // Subscribe to System State topic
       globalWebSocket.subscribe("/topic/system-state", (msg) => {
         try {
-          const payload = JSON.parse(msg.body);
-          if (payload.emergencyActive !== undefined) setEmergencyActive(payload.emergencyActive);
-          if (payload.helpStatus !== undefined) setHelpStatus(payload.helpStatus);
-          if (payload.refillStatus !== undefined) setRefillStatus(payload.refillStatus);
+          const state: SystemStateResponse = JSON.parse(msg.body);
+          if (state) {
+            if (state.emergencyActive && !prevEmergencyRef.current) {
+              playEmergencyAlarm();
+            }
+            prevEmergencyRef.current = state.emergencyActive;
+            setEmergencyActive(state.emergencyActive);
+            setAreaSignals(state.areaSignals || {});
+          }
         } catch (e) {
-          console.error("Error parsing system-state payload:", e);
+          console.error("Error parsing system-state socket:", e);
         }
       });
 
-      // Subscribe to Operations Log topic
       globalWebSocket.subscribe("/topic/logs", (msg) => {
-        try {
-          const payload = JSON.parse(msg.body);
-          if (payload.message) addLog(payload.message);
-        } catch (e) {
-          console.error("Error parsing log payload:", e);
+        if (msg.body) {
+          addLog(msg.body);
         }
+      });
+
+      globalWebSocket.subscribe("/topic/tasks", () => {
+        fetchTasks();
       });
     });
 
-    return () => {
-      // Keep socket open or disconnect on unmount
-    };
-  }, [fetchStaffs, fetchAreas]);
+    // 🔄 Continuous Fallback Polling (Every 2 seconds)
+    const interval = setInterval(syncDashboardState, 2000);
+    return () => clearInterval(interval);
+
+  }, [isReady, fetchStaffs, fetchAreas, fetchTasks]);
+
+  if (!isReady) return null;
 
   const toggleEmergency = async () => {
     const nextState = !emergencyActive;
@@ -147,9 +145,10 @@ export default function DashboardPage() {
     setEmergencyActive(nextState);
     addLog(
       nextState
-        ? "🚨 EMERGENCY: Dispatched all field crew to Gathering Area."
-        : "✅ RESOLVED: Emergency dispatch cleared."
+        ? "🚨 EMERGENCY DISPATCH: Panggilan Darurat Gathering Area Diaktifkan!"
+        : "✅ EMERGENCY CLEARED: Panggilan Darurat Direset."
     );
+
     try {
       await apiFetch("/system-state", {
         method: "POST",
@@ -160,35 +159,86 @@ export default function DashboardPage() {
     }
   };
 
-  const resolveHelp = async () => {
-    const nextState = "idle";
-    prevHelpRef.current = nextState;
-    setHelpStatus(nextState);
-    addLog("✅ RESOLVED: Assistance call cleared.");
+  const resolveAreaHelp = async (areaId: string, areaName: string) => {
+    addLog(`✅ RESOLVED: Bantuan koordinasi di ${areaName} telah diselesaikan.`);
     try {
       await apiFetch("/system-state", {
         method: "POST",
-        data: { helpStatus: nextState },
+        data: {
+          areaId,
+          areaName,
+          helpActive: "false",
+        },
       });
     } catch (err) {
-      console.error("Failed to update help status:", err);
+      console.error("Failed to resolve help signal:", err);
     }
   };
 
-  const resolveRefill = async () => {
-    const nextState = "idle";
-    prevRefillRef.current = nextState;
-    setRefillStatus(nextState);
-    addLog("✅ RESOLVED: Refill request completed.");
+  const resolveAreaRefill = async (areaId: string, areaName: string) => {
+    addLog(`✅ RESOLVED: Permintaan refill logistik di ${areaName} telah diselesaikan.`);
     try {
       await apiFetch("/system-state", {
         method: "POST",
-        data: { refillStatus: nextState },
+        data: {
+          areaId,
+          areaName,
+          refillActive: "false",
+        },
       });
     } catch (err) {
-      console.error("Failed to update refill status:", err);
+      console.error("Failed to resolve refill signal:", err);
     }
   };
+
+  // Derive per-area signals arrays
+  const activeHelpSignals = Object.values(areaSignals).filter((s) => s.helpActive);
+  const activeRefillSignals = Object.values(areaSignals).filter((s) => s.refillActive);
+
+  // DataTable columns for Staff Allocation summary
+  const staffColumns: Column<any>[] = [
+    {
+      id: "index",
+      label: "No.",
+      align: "center",
+      render: (_, idx) => <>{idx + 1}</>,
+    },
+    {
+      id: "name",
+      label: "Nama Staff",
+      render: (row) => (
+        <Box sx={{ fontWeight: 700, color: "#0F172A" }}>{row.name}</Box>
+      ),
+    },
+    {
+      id: "role",
+      label: "Role Operasional",
+      render: (row) => (
+        <Chip
+          label={row.role || "Staff"}
+          size="small"
+          sx={{
+            backgroundColor: "#0F172A",
+            color: "#FBC02D",
+            fontWeight: 700,
+            fontSize: "0.75rem",
+          }}
+        />
+      ),
+    },
+    {
+      id: "area",
+      label: "Area Penugasan",
+      render: (row) => {
+        const area = areas.find((a) => a.id === row.assignedAreaId);
+        return (
+          <Box sx={{ fontWeight: 600, color: "#0F172A" }}>
+            {area ? area.name : <span style={{ color: "#94A3B8" }}>Belum Ditugaskan</span>}
+          </Box>
+        );
+      },
+    },
+  ];
 
   return (
     <AdminShell>
@@ -211,7 +261,7 @@ export default function DashboardPage() {
             preset="helperText"
             sx={{ color: "#64748B", fontSize: "0.925rem", maxWidth: 650 }}
           >
-            Simulasikan aksi cepat dari Admin (Emergensi) maupun permintaan bantuan serta isi ulang logistik dari Staff di lapangan secara Real-Time WebSocket.
+            Simulasikan aksi cepat dari Admin (Emergensi) maupun permintaan bantuan serta isi ulang logistik per-area dari Staff di lapangan secara Real-Time WebSocket.
           </AppTypography>
         </Grid>
 
@@ -309,7 +359,7 @@ export default function DashboardPage() {
           </Card>
         </Grid>
 
-        {/* Live Help Request Card */}
+        {/* Live Help Request Card (Per-Area Multi Cards) */}
         <Grid size={{ xs: 12, md: 4 }}>
           <Card
             sx={{
@@ -326,56 +376,69 @@ export default function DashboardPage() {
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
               <WarningAmberIcon sx={{ color: "#F59E0B", fontSize: 22 }} />
               <AppTypography preset="cardTitle" sx={{ fontWeight: 800, fontSize: "1.1rem", color: "#0F172A" }}>
-                Minta Bantuan Koordinasi
+                Minta Bantuan Per-Area ({activeHelpSignals.length})
               </AppTypography>
             </Box>
 
             <AppTypography preset="helperText" sx={{ color: "#64748B", fontSize: "0.85rem", mb: 2 }}>
-              Sinyal bantuan aktif dari staff yang memerlukan dukungan koordinator di area penugasan.
+              Sinyal bantuan aktif dari staff per-area yang memerlukan dukungan koordinator.
             </AppTypography>
 
-            <Box sx={{ mt: "auto" }}>
-              {helpStatus !== "idle" ? (
-                <Box sx={{ p: 2, borderRadius: "8px", backgroundColor: "#FEF3C7", border: "1px solid #FCD34D", mb: 2 }}>
-                  <AppTypography preset="helperText" sx={{ color: "#92400E", fontWeight: 700, fontSize: "0.75rem", textTransform: "uppercase" }}>
-                    Area Minta Bantuan:
-                  </AppTypography>
-                  <AppTypography preset="cardTitle" sx={{ color: "#78350F", fontWeight: 800, fontSize: "1.05rem" }}>
-                    📍 {helpStatus}
-                  </AppTypography>
-                </Box>
+            <Box sx={{ mt: "auto", display: "flex", flexDirection: "column", gap: 1.5 }}>
+              {activeHelpSignals.length > 0 ? (
+                activeHelpSignals.map((signal) => (
+                  <Box
+                    key={signal.areaId}
+                    sx={{
+                      p: 2,
+                      borderRadius: "8px",
+                      backgroundColor: "#FEF3C7",
+                      border: "1px solid #FCD34D",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Box>
+                      <AppTypography preset="helperText" sx={{ color: "#92400E", fontWeight: 700, fontSize: "0.725rem", textTransform: "uppercase" }}>
+                        Bantuan Aktif di:
+                      </AppTypography>
+                      <AppTypography preset="cardTitle" sx={{ color: "#78350F", fontWeight: 800, fontSize: "1rem" }}>
+                        📍 {signal.areaName}
+                      </AppTypography>
+                    </Box>
+
+                    <Button
+                      size="small"
+                      onClick={() => resolveAreaHelp(signal.areaId, signal.areaName)}
+                      sx={{
+                        backgroundColor: "#15803D",
+                        color: "#ffffff",
+                        fontWeight: 700,
+                        fontSize: "0.75rem",
+                        borderRadius: "6px",
+                        textTransform: "none",
+                        px: 1.5,
+                        py: 0.5,
+                        "&:hover": { backgroundColor: "#166534" },
+                      }}
+                    >
+                      Selesaikan
+                    </Button>
+                  </Box>
+                ))
               ) : (
-                <Box sx={{ p: 2, borderRadius: "8px", backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0", mb: 2, textAlign: "center" }}>
+                <Box sx={{ p: 2, borderRadius: "8px", backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0", textAlign: "center" }}>
                   <AppTypography preset="helperText" sx={{ color: "#94A3B8", fontWeight: 600 }}>
-                    Tidak ada panggilan bantuan aktif
+                    Tidak ada panggilan bantuan aktif saat ini
                   </AppTypography>
                 </Box>
               )}
-
-              <Button
-                fullWidth
-                disabled={helpStatus === "idle"}
-                onClick={resolveHelp}
-                startIcon={<CheckIcon />}
-                sx={{
-                  py: 1.2,
-                  borderRadius: "8px",
-                  backgroundColor: "#10B981",
-                  color: "#ffffff",
-                  fontWeight: 700,
-                  fontSize: "0.9rem",
-                  textTransform: "none",
-                  "&:hover": { backgroundColor: "#059669" },
-                  "&.Mui-disabled": { backgroundColor: "#E2E8F0", color: "#94A3B8" },
-                }}
-              >
-                Selesaikan Bantuan
-              </Button>
             </Box>
           </Card>
         </Grid>
 
-        {/* Live Refill Request Card */}
+        {/* Live Refill Request Card (Per-Area Multi Cards) */}
         <Grid size={{ xs: 12, md: 4 }}>
           <Card
             sx={{
@@ -390,118 +453,136 @@ export default function DashboardPage() {
             }}
           >
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
-              <RefreshIcon sx={{ color: "#3B82F6", fontSize: 22 }} />
+              <LocalDiningIcon sx={{ color: "#3B82F6", fontSize: 22 }} />
               <AppTypography preset="cardTitle" sx={{ fontWeight: 800, fontSize: "1.1rem", color: "#0F172A" }}>
-                Minta Refill Logistik
+                Refill Logistik Per-Area ({activeRefillSignals.length})
               </AppTypography>
             </Box>
 
             <AppTypography preset="helperText" sx={{ color: "#64748B", fontSize: "0.85rem", mb: 2 }}>
-              Permintaan pasokan ulang perlengkapan/konsumsi dari staff di zona penugasan.
+              Sinyal isi ulang makanan/minuman dari runner per-area penugasan.
             </AppTypography>
 
-            <Box sx={{ mt: "auto" }}>
-              {refillStatus !== "idle" ? (
-                <Box sx={{ p: 2, borderRadius: "8px", backgroundColor: "#DBEAFE", border: "1px solid #BFDBFE", mb: 2 }}>
-                  <AppTypography preset="helperText" sx={{ color: "#1E40AF", fontWeight: 700, fontSize: "0.75rem", textTransform: "uppercase" }}>
-                    Area Minta Refill:
-                  </AppTypography>
-                  <AppTypography preset="cardTitle" sx={{ color: "#1E3A8A", fontWeight: 800, fontSize: "1.05rem" }}>
-                    📦 {refillStatus}
-                  </AppTypography>
-                </Box>
+            <Box sx={{ mt: "auto", display: "flex", flexDirection: "column", gap: 1.5 }}>
+              {activeRefillSignals.length > 0 ? (
+                activeRefillSignals.map((signal) => (
+                  <Box
+                    key={signal.areaId}
+                    sx={{
+                      p: 2,
+                      borderRadius: "8px",
+                      backgroundColor: "#EFF6FF",
+                      border: "1px solid #93C5FD",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Box>
+                      <AppTypography preset="helperText" sx={{ color: "#1E40AF", fontWeight: 700, fontSize: "0.725rem", textTransform: "uppercase" }}>
+                        Refill Aktif di:
+                      </AppTypography>
+                      <AppTypography preset="cardTitle" sx={{ color: "#1E3A8A", fontWeight: 800, fontSize: "1rem" }}>
+                        🍹 {signal.areaName}
+                      </AppTypography>
+                    </Box>
+
+                    <Button
+                      size="small"
+                      onClick={() => resolveAreaRefill(signal.areaId, signal.areaName)}
+                      sx={{
+                        backgroundColor: "#15803D",
+                        color: "#ffffff",
+                        fontWeight: 700,
+                        fontSize: "0.75rem",
+                        borderRadius: "6px",
+                        textTransform: "none",
+                        px: 1.5,
+                        py: 0.5,
+                        "&:hover": { backgroundColor: "#166534" },
+                      }}
+                    >
+                      Selesaikan
+                    </Button>
+                  </Box>
+                ))
               ) : (
-                <Box sx={{ p: 2, borderRadius: "8px", backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0", mb: 2, textAlign: "center" }}>
+                <Box sx={{ p: 2, borderRadius: "8px", backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0", textAlign: "center" }}>
                   <AppTypography preset="helperText" sx={{ color: "#94A3B8", fontWeight: 600 }}>
-                    Tidak ada permintaan refill aktif
+                    Tidak ada permintaan isi ulang aktif saat ini
                   </AppTypography>
                 </Box>
               )}
-
-              <Button
-                fullWidth
-                disabled={refillStatus === "idle"}
-                onClick={resolveRefill}
-                startIcon={<CheckIcon />}
-                sx={{
-                  py: 1.2,
-                  borderRadius: "8px",
-                  backgroundColor: "#10B981",
-                  color: "#ffffff",
-                  fontWeight: 700,
-                  fontSize: "0.9rem",
-                  textTransform: "none",
-                  "&:hover": { backgroundColor: "#059669" },
-                  "&.Mui-disabled": { backgroundColor: "#E2E8F0", color: "#94A3B8" },
-                }}
-              >
-                Selesaikan Refill
-              </Button>
             </Box>
           </Card>
         </Grid>
       </Grid>
 
-      {/* Real-time System Feed Logs */}
-      <Card
-        sx={{
-          backgroundColor: "#ffffff",
-          borderRadius: "12px",
-          border: "1px solid #E2E8F0",
-          p: 3,
-          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.04)",
-        }}
-      >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-          <TerminalOutlinedIcon sx={{ color: "#FBC02D", fontSize: 22 }} />
-          <AppTypography preset="sectionTitle" sx={{ fontWeight: 800, fontSize: "1.15rem", color: "#0F172A" }}>
-            Live Operations Feed (Real-Time WebSocket)
-          </AppTypography>
-        </Box>
-
-        <Paper
-          variant="outlined"
-          sx={{
-            minHeight: 200,
-            maxHeight: 300,
-            overflowY: "auto",
-            p: 2,
-            backgroundColor: "#0F172A",
-            borderColor: "#1E293B",
-            borderRadius: "8px",
-          }}
-        >
-          {logs.length === 0 ? (
-            <AppTypography preset="helperText" sx={{ color: "#64748B", textAlign: "center", py: 4 }}>
-              Belum ada log operasi tercatat.
+      {/* Operations Activity Logs Feed & Staff Allocation Summary */}
+      <Grid container spacing={3}>
+        {/* Real-time Activity Log Terminal */}
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card
+            sx={{
+              backgroundColor: "#0F172A",
+              borderRadius: "12px",
+              color: "#ffffff",
+              p: 3,
+              height: "100%",
+              border: "1px solid #334155",
+            }}
+          >
+            <AppTypography preset="sectionTitle" sx={{ fontWeight: 800, fontSize: "1.2rem", color: "#FBC02D", mb: 2 }}>
+              💻 Terminal Log Aktivitas Operations (Real-Time)
             </AppTypography>
-          ) : (
-            logs.map((log, index) => (
-              <Box
-                key={index}
-                sx={{ mb: 1, borderBottom: "1px solid #1E293B", pb: 0.75 }}
-              >
-                <AppTypography
-                  preset="helperText"
-                  sx={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "0.825rem",
-                    color: log.includes("🚨")
-                      ? "#EF4444"
-                      : log.includes("⚠️")
-                      ? "#F59E0B"
-                      : log.includes("🔄")
-                      ? "#3B82F6"
-                      : "#94A3B8",
-                  }}
-                >
-                  {log}
-                </AppTypography>
-              </Box>
-            ))
-          )}
-        </Paper>
-      </Card>
+
+            <Divider sx={{ borderColor: "#334155", mb: 2 }} />
+
+            <Box
+              sx={{
+                fontFamily: "monospace",
+                fontSize: "0.825rem",
+                maxHeight: 280,
+                overflowY: "auto",
+                display: "flex",
+                flexDirection: "column",
+                gap: 1,
+              }}
+            >
+              {operationsLogs.length === 0 ? (
+                <Box sx={{ color: "#64748B", fontStyle: "italic" }}>
+                  Mendengarkan event WebSocket real-time...
+                </Box>
+              ) : (
+                operationsLogs.map((log, idx) => (
+                  <Box key={idx} sx={{ color: log.includes("DARURAT") ? "#EF4444" : log.includes("HELP") ? "#F59E0B" : log.includes("REFILL") ? "#3B82F6" : "#10B981" }}>
+                    {log}
+                  </Box>
+                ))
+              )}
+            </Box>
+          </Card>
+        </Grid>
+
+        {/* Staff Allocation Overview Table */}
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Card
+            sx={{
+              backgroundColor: "#ffffff",
+              borderRadius: "12px",
+              border: "1px solid #E2E8F0",
+              p: 3,
+              height: "100%",
+            }}
+          >
+            <AppTypography preset="sectionTitle" sx={{ fontWeight: 800, fontSize: "1.2rem", color: "#0F172A", mb: 2 }}>
+              👥 Alokasi Area Staff Lapangan
+            </AppTypography>
+
+            <DataTable columns={staffColumns} rows={staffs.slice(0, 5)} emptyMessage="Belum ada staff terdaftar." />
+          </Card>
+        </Grid>
+      </Grid>
     </AdminShell>
   );
 }

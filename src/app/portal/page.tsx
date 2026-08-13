@@ -34,6 +34,20 @@ import { apiFetch } from "@/utils/api-client";
 import { globalWebSocket } from "@/utils/websocket-client";
 import { playEmergencyAlarm } from "@/utils/audio-alert";
 
+interface AreaSignalInfo {
+  areaId: string;
+  areaName: string;
+  helpActive?: boolean;
+  refillActive?: boolean;
+}
+
+interface SystemStateResponse {
+  emergencyActive: boolean;
+  areaSignals?: Record<string, AreaSignalInfo>;
+  helpStatus?: string;
+  refillStatus?: string;
+}
+
 export default function StaffPortalPage() {
   const { isReady } = useStaffGuard();
   const user = useAuthStore((state) => state.user);
@@ -49,6 +63,19 @@ export default function StaffPortalPage() {
   const [showCompleted, setShowCompleted] = useState(false);
 
   const staffIdRef = useRef<string | null>(null);
+  const areaIdRef = useRef<string | null>(null);
+
+  // Find staff and area record
+  const myStaff = user ? staffs.find((s) => s.id === user.staffId) || null : null;
+  const myArea = myStaff?.assignedAreaId
+    ? areas.find((a) => a.id === myStaff.assignedAreaId)
+    : null;
+
+  useEffect(() => {
+    if (myArea?.id) {
+      areaIdRef.current = myArea.id;
+    }
+  }, [myArea]);
 
   useEffect(() => {
     if (!isReady || !user) return;
@@ -59,14 +86,23 @@ export default function StaffPortalPage() {
 
     const syncPortalData = async () => {
       try {
-        const data = await apiFetch<{ emergencyActive: boolean; helpStatus: string; refillStatus: string }>("/system-state");
+        const data = await apiFetch<SystemStateResponse>("/system-state");
         if (data) {
           if (data.emergencyActive && !emergencyActive) {
             playEmergencyAlarm();
           }
           setEmergencyActive(data.emergencyActive);
-          setHelpStatus(data.helpStatus !== "idle" ? "requested" : "idle");
-          setRefillStatus(data.refillStatus !== "idle" ? "requested" : "idle");
+
+          // 📍 Scoped Per-Area Signals Resolution
+          const currentAreaId = areaIdRef.current || myStaff?.assignedAreaId;
+          if (currentAreaId && data.areaSignals && data.areaSignals[currentAreaId]) {
+            const areaSignal = data.areaSignals[currentAreaId];
+            setHelpStatus(areaSignal.helpActive ? "requested" : "idle");
+            setRefillStatus(areaSignal.refillActive ? "requested" : "idle");
+          } else {
+            setHelpStatus("idle");
+            setRefillStatus("idle");
+          }
         }
       } catch (err) {
         console.error("Failed to fetch system state in portal:", err);
@@ -81,7 +117,7 @@ export default function StaffPortalPage() {
     // Initial sync
     syncPortalData();
 
-    // ⚡ Real-time WebSocket Subscription for Emergency & Tasks (< 50ms)
+    // ⚡ Real-time WebSocket Subscription for Emergency, Signals & Tasks (< 50ms)
     globalWebSocket.connect(() => {
       globalWebSocket.subscribe("/topic/emergency", (msg) => {
         try {
@@ -97,6 +133,27 @@ export default function StaffPortalPage() {
         }
       });
 
+      globalWebSocket.subscribe("/topic/system-state", (msg) => {
+        try {
+          const state: SystemStateResponse = JSON.parse(msg.body);
+          if (state) {
+            setEmergencyActive(state.emergencyActive);
+
+            const currentAreaId = areaIdRef.current || myStaff?.assignedAreaId;
+            if (currentAreaId && state.areaSignals && state.areaSignals[currentAreaId]) {
+              const areaSignal = state.areaSignals[currentAreaId];
+              setHelpStatus(areaSignal.helpActive ? "requested" : "idle");
+              setRefillStatus(areaSignal.refillActive ? "requested" : "idle");
+            } else {
+              setHelpStatus("idle");
+              setRefillStatus("idle");
+            }
+          }
+        } catch (e) {
+          console.error("Error parsing system-state socket in portal:", e);
+        }
+      });
+
       globalWebSocket.subscribe("/topic/tasks", () => {
         const currentStaffId = staffIdRef.current || user?.staffId;
         if (currentStaffId) {
@@ -105,19 +162,13 @@ export default function StaffPortalPage() {
       });
     });
 
-    // 🔄 Continuous Fallback Polling (Every 2 seconds) so tasks ALWAYS sync automatically
+    // 🔄 Continuous Fallback Polling (Every 2 seconds) so portal ALWAYS stays synced
     const interval = setInterval(syncPortalData, 2000);
     return () => clearInterval(interval);
 
-  }, [isReady, user, fetchStaffs, fetchAreas, fetchTasks, emergencyActive]);
+  }, [isReady, user, fetchStaffs, fetchAreas, fetchTasks, emergencyActive, myStaff?.assignedAreaId]);
 
   if (!isReady || !user) return null;
-
-  // Find staff record
-  const myStaff = staffs.find((s) => s.id === user.staffId) || null;
-  const myArea = myStaff?.assignedAreaId
-    ? areas.find((a) => a.id === myStaff.assignedAreaId)
-    : null;
 
   const handleLogout = async () => {
     await serviceLogout();
@@ -125,28 +176,40 @@ export default function StaffPortalPage() {
   };
 
   const handleHelpToggle = async () => {
-    const nextState = helpStatus === "idle" ? (myArea ? myArea.name : "Portal Staff") : "idle";
-    setHelpStatus(nextState === "idle" ? "idle" : "requested");
+    if (!myArea) return;
+    const nextActive = helpStatus === "idle";
+    setHelpStatus(nextActive ? "requested" : "idle");
+
     try {
       await apiFetch("/system-state", {
         method: "POST",
-        data: { helpStatus: nextState },
+        data: {
+          areaId: myArea.id,
+          areaName: myArea.name,
+          helpActive: String(nextActive),
+        },
       });
     } catch (err) {
-      console.error("Failed to sync help request:", err);
+      console.error("Failed to sync area help request:", err);
     }
   };
 
   const handleRefillToggle = async () => {
-    const nextState = refillStatus === "idle" ? (myArea ? myArea.name : "Portal Staff") : "idle";
-    setRefillStatus(nextState === "idle" ? "idle" : "requested");
+    if (!myArea) return;
+    const nextActive = refillStatus === "idle";
+    setRefillStatus(nextActive ? "requested" : "idle");
+
     try {
       await apiFetch("/system-state", {
         method: "POST",
-        data: { refillStatus: nextState },
+        data: {
+          areaId: myArea.id,
+          areaName: myArea.name,
+          refillActive: String(nextActive),
+        },
       });
     } catch (err) {
-      console.error("Failed to sync refill request:", err);
+      console.error("Failed to sync area refill request:", err);
     }
   };
 
@@ -164,7 +227,6 @@ export default function StaffPortalPage() {
     if (priorityA !== priorityB) {
       return priorityA - priorityB;
     }
-    // Secondary sort: Newest task at the top
     return b.id.localeCompare(a.id);
   });
 
