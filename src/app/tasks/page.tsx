@@ -185,20 +185,26 @@ export default function TasksPage() {
     {
       id: "area",
       label: "Target Area",
-      render: (row: Task) => (
-        <Box sx={{ fontWeight: 600, color: "#0F172A", fontSize: "0.9rem" }}>
-          {row.areaName || <span style={{ color: "#94A3B8", fontStyle: "italic" }}>Tidak Ada Area</span>}
-        </Box>
-      ),
+      render: (row: Task) => {
+        const resolvedArea = row.areaName || areas.find((a) => a.id === row.assignedAreaId)?.name;
+        return (
+          <Box sx={{ fontWeight: 600, color: "#0F172A", fontSize: "0.9rem" }}>
+            {resolvedArea || <span style={{ color: "#94A3B8", fontStyle: "italic" }}>Tidak Ada Area</span>}
+          </Box>
+        );
+      },
     },
     {
       id: "staff",
       label: "Penanggung Jawab",
-      render: (row: Task) => (
-        <Box sx={{ fontWeight: 600, color: "#0F172A", fontSize: "0.9rem" }}>
-          {row.staffName || <span style={{ color: "#94A3B8", fontStyle: "italic" }}>Belum Ditunjuk</span>}
-        </Box>
-      ),
+      render: (row: Task) => {
+        const resolvedStaff = row.staffName || staffs.find((s) => s.id === row.assignedStaffId)?.name;
+        return (
+          <Box sx={{ fontWeight: 600, color: "#0F172A", fontSize: "0.9rem" }}>
+            {resolvedStaff || <span style={{ color: "#94A3B8", fontStyle: "italic" }}>Belum Ditunjuk</span>}
+          </Box>
+        );
+      },
     },
     {
       id: "status",

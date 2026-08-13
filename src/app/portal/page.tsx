@@ -424,7 +424,7 @@ export default function StaffPortalPage() {
 
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1, pt: 1, borderTop: "1px dashed #E2E8F0" }}>
                       <Chip
-                        label={task.areaName || "Area Venue"}
+                        label={task.areaName || areas.find((a) => a.id === task.assignedAreaId)?.name || "Area Venue"}
                         size="small"
                         sx={{
                           backgroundColor: "#F1F5F9",
