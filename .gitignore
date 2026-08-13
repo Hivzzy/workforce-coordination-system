@@ -44,9 +44,10 @@ next-env.d.ts
 graphify-out/
 /.agents
 
-# maven target
+# maven target & local db data
 target/
 backend/target/
+backend/data/
 
 # external file
 *.zip
