@@ -161,11 +161,6 @@ export default function StaffPortalPage() {
         }
       });
     });
-
-    // 🔄 Continuous Fallback Polling (Every 2 seconds) so portal ALWAYS stays synced
-    const interval = setInterval(syncPortalData, 2000);
-    return () => clearInterval(interval);
-
   }, [isReady, user, fetchStaffs, fetchAreas, fetchTasks, emergencyActive, myStaff?.assignedAreaId]);
 
   if (!isReady || !user) return null;

@@ -127,11 +127,6 @@ export default function DashboardPage() {
         fetchTasks();
       });
     });
-
-    // 🔄 Continuous Fallback Polling (Every 2 seconds)
-    const interval = setInterval(syncDashboardState, 2000);
-    return () => clearInterval(interval);
-
   }, [isReady, fetchStaffs, fetchAreas, fetchTasks]);
 
   if (!isReady) return null;
