@@ -13,10 +13,6 @@ import {
   Stack,
   InputAdornment,
   IconButton,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
@@ -50,7 +46,6 @@ export default function AreaPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [nameInput, setNameInput] = useState("");
-  const [typeInput, setTypeInput] = useState("Gathering Area");
 
   // Delete modal state
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -71,14 +66,12 @@ export default function AreaPage() {
   const handleOpenAddForm = () => {
     setEditingId(null);
     setNameInput("");
-    setTypeInput("Gathering Area");
     setFormOpen(true);
   };
 
   const handleOpenEditForm = (area: Area) => {
     setEditingId(area.id);
     setNameInput(area.name);
-    setTypeInput(area.type || "Gathering Area");
     setFormOpen(true);
   };
 
@@ -87,12 +80,11 @@ export default function AreaPage() {
     verifyAdminAuth();
 
     if (editingId) {
-      updateArea(editingId, { name: nameInput.trim(), type: typeInput });
+      updateArea(editingId, { name: nameInput.trim() });
     } else {
       addArea({
         id: Date.now().toString(),
         name: nameInput.trim(),
-        type: typeInput,
       });
     }
 
@@ -295,23 +287,6 @@ export default function AreaPage() {
             placeholder="Masukkan nama area..."
             slotProps={{ input: { sx: { borderRadius: "8px" } } }}
           />
-
-          <FormControl fullWidth>
-            <InputLabel id="area-type-label">Kategori Area</InputLabel>
-            <Select
-              labelId="area-type-label"
-              label="Kategori Area"
-              value={typeInput}
-              onChange={(e) => setTypeInput(e.target.value)}
-              sx={{ borderRadius: "8px" }}
-            >
-              <MenuItem value="Gathering Area">Gathering Area</MenuItem>
-              <MenuItem value="VIP Area">VIP Area</MenuItem>
-              <MenuItem value="Catering Service">Catering Service</MenuItem>
-              <MenuItem value="Logistics & Storage">Logistics & Storage</MenuItem>
-              <MenuItem value="Security Post">Security Post</MenuItem>
-            </Select>
-          </FormControl>
         </Stack>
       </Modal>
 

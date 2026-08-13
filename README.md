@@ -128,9 +128,9 @@ sequenceDiagram
 ### 3. Tabel `tasks` (Manajemen Tugas Mandiri Staf)
 - **Tabel `tasks`**: `id` (PK), `title`, `description`, `assigned_staff_id` (FK), `assigned_area_id` (FK), `status` (`PENDING`, `IN_PROGRESS`, `COMPLETED`), `created_at`.
 
-### 4. Tabel `areas` (Manajemen Layout Zona & Identitas Area)
-- **Tabel `areas`**: `id` (PK), `name` (Nama Area, misal: *VIP Lounge*, *Gathering Area*, *Buffet Zone*), `type` (Tipe/Kategori Area Zona).
-- **Catatan Arsitektur (Area Zone Builder)**: Seluruh atribut visual kanvas 2D piksel lama (`x`, `y`, `w`, `h`, `color`) telah **sepenuhnya dibersihkan** dari skema basis data dan disederhanakan menjadi model zona murni (`id`, `name`, `type`). Hal ini dilakukan untuk menjamin efisiensi basis data, mempermudah responsivitas di layar smartphone staf (*Mobile-First UI*), serta mempercepat pemetaan staf ke zona penugasan secara dinamis.
+### 4. Tabel `areas` (Manajemen Area & Identitas Zona)
+- **Tabel `areas`**: `id` (PK), `name` (Nama Area, misal: *Area Depan*, *Area Belakang*, *VIP Lounge*).
+- **Catatan Arsitektur (Area Zone Builder)**: Seluruh atribut tambahan lama (`x`, `y`, `w`, `h`, `color`, `type`) telah **sepenuhnya dibersihkan** dari skema basis data dan disederhanakan menjadi skema area murni (`id`, `name`). Hal ini dilakukan untuk menjamin efisiensi basis data, mempermudah responsivitas di layar smartphone staf (*Mobile-First UI*), serta mempercepat pemetaan staf ke area penugasan secara dinamis.
 
 ---
 

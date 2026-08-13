@@ -48,7 +48,7 @@ class TaskServiceImplTest {
     void testTaskDtoPopulation() {
         // Arrange
         StaffEntity staff = StaffEntity.builder().id("staff-001").name("Budi Santoso").role("Runner").build();
-        AreaEntity area = AreaEntity.builder().id("area-vip").name("VIP Lounge").type("VIP").build();
+        AreaEntity area = AreaEntity.builder().id("area-vip").name("VIP Lounge").build();
         TaskEntity task = TaskEntity.builder()
                 .id("task-101")
                 .title("Refill Air Mineral VIP")
