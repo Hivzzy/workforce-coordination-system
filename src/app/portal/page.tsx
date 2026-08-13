@@ -182,6 +182,7 @@ export default function StaffPortalPage() {
           areaId: myArea.id,
           areaName: myArea.name,
           helpActive: String(nextActive),
+          refillActive: String(refillStatus !== "idle"),
         },
       });
     } catch (err) {
@@ -201,6 +202,7 @@ export default function StaffPortalPage() {
           areaId: myArea.id,
           areaName: myArea.name,
           refillActive: String(nextActive),
+          helpActive: String(helpStatus !== "idle"),
         },
       });
     } catch (err) {

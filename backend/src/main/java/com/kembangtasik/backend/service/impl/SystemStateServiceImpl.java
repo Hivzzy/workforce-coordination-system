@@ -28,12 +28,18 @@ public class SystemStateServiceImpl implements SystemStateService {
         this.objectMapper = new ObjectMapper();
     }
 
+    private boolean parseBool(Object val) {
+        if (val == null) return false;
+        if (val instanceof Boolean) return (Boolean) val;
+        return "true".equalsIgnoreCase(String.valueOf(val).trim());
+    }
+
     @Override
     public Map<String, Object> getSystemState() {
         Map<String, Object> result = new HashMap<>();
 
         Optional<SystemStateEntity> emergencyOpt = systemStateRepository.findById("emergency_active");
-        boolean emergencyActive = emergencyOpt.map(e -> Boolean.parseBoolean(e.getValue())).orElse(false);
+        boolean emergencyActive = emergencyOpt.map(e -> parseBool(e.getValue())).orElse(false);
 
         // Fetch per-area active signals JSON map
         Map<String, Map<String, Object>> areaSignals = getAreaSignalsMap();
@@ -41,9 +47,9 @@ public class SystemStateServiceImpl implements SystemStateService {
         result.put("emergencyActive", emergencyActive);
         result.put("areaSignals", areaSignals);
 
-        // Legacy compatibility fields (derived from overall active signals)
-        boolean anyHelp = areaSignals.values().stream().anyMatch(s -> Boolean.TRUE.equals(s.get("helpActive")));
-        boolean anyRefill = areaSignals.values().stream().anyMatch(s -> Boolean.TRUE.equals(s.get("refillActive")));
+        // Legacy compatibility fields
+        boolean anyHelp = areaSignals.values().stream().anyMatch(s -> parseBool(s.get("helpActive")));
+        boolean anyRefill = areaSignals.values().stream().anyMatch(s -> parseBool(s.get("refillActive")));
         result.put("helpStatus", anyHelp ? "requested" : "idle");
         result.put("refillStatus", anyRefill ? "requested" : "idle");
 
@@ -75,7 +81,7 @@ public class SystemStateServiceImpl implements SystemStateService {
     @Override
     public Map<String, Object> updateSystemState(Map<String, String> body) {
         if (body.containsKey("emergencyActive")) {
-            boolean active = Boolean.parseBoolean(body.get("emergencyActive"));
+            boolean active = parseBool(body.get("emergencyActive"));
             systemStateRepository.save(new SystemStateEntity("emergency_active", String.valueOf(active)));
             webSocketPublisherService.sendEmergencyAlert(active, active ? "🚨 DARURAT GATHERING AREA ACTIVE!" : "Emergency Call Cleared");
         }
@@ -91,20 +97,20 @@ public class SystemStateServiceImpl implements SystemStateService {
             signal.put("areaName", areaName);
 
             if (body.containsKey("helpActive")) {
-                boolean helpActive = Boolean.parseBoolean(body.get("helpActive"));
+                boolean helpActive = parseBool(body.get("helpActive"));
                 signal.put("helpActive", helpActive);
                 webSocketPublisherService.sendOperationsLog((helpActive ? "🆘 HELP REQUESTED" : "✅ HELP CLEARED") + " at " + areaName);
             }
 
             if (body.containsKey("refillActive")) {
-                boolean refillActive = Boolean.parseBoolean(body.get("refillActive"));
+                boolean refillActive = parseBool(body.get("refillActive"));
                 signal.put("refillActive", refillActive);
                 webSocketPublisherService.sendOperationsLog((refillActive ? "🍹 REFILL REQUESTED" : "✅ REFILL CLEARED") + " at " + areaName);
             }
 
             // Remove empty area signals if both help & refill are false
-            boolean help = Boolean.TRUE.equals(signal.get("helpActive"));
-            boolean refill = Boolean.TRUE.equals(signal.get("refillActive"));
+            boolean help = parseBool(signal.get("helpActive"));
+            boolean refill = parseBool(signal.get("refillActive"));
             if (!help && !refill) {
                 areaSignals.remove(areaId);
             } else {
