@@ -7,13 +7,10 @@ spring:
   application:
     name: kembang-tasik-backend
   datasource:
-    url: ${DATABASE_URL:jdbc:h2:mem:kembang_tasik_db;DB_CLOSE_DELAY=-1;MODE=PostgreSQL}
-    username: ${DB_USERNAME:sa}
-    password: ${DB_PASSWORD:}
-    driver-class-name: ${DB_DRIVER:org.h2.Driver}
-  h2:
-    console:
-      enabled: true
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/kembang_tasik_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgrespassword}
+    driver-class-name: ${DB_DRIVER:org.postgresql.Driver}
   jpa:
     hibernate:
       ddl-auto: update
