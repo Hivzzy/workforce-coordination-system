@@ -1,0 +1,11 @@
+node_modules
+.next
+out
+build
+target
+backend/target
+backend/data
+.git
+.agents
+graphify-out
+*.log
