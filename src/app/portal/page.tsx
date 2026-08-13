@@ -95,13 +95,10 @@ export default function StaffPortalPage() {
 
           // 📍 Scoped Per-Area Signals Resolution
           const currentAreaId = areaIdRef.current || myStaff?.assignedAreaId;
-          if (currentAreaId && data.areaSignals && data.areaSignals[currentAreaId]) {
-            const areaSignal = data.areaSignals[currentAreaId];
-            setHelpStatus(areaSignal.helpActive ? "requested" : "idle");
-            setRefillStatus(areaSignal.refillActive ? "requested" : "idle");
-          } else {
-            setHelpStatus("idle");
-            setRefillStatus("idle");
+          if (currentAreaId) {
+            const areaSignal = data.areaSignals ? data.areaSignals[currentAreaId] : null;
+            setHelpStatus(areaSignal?.helpActive ? "requested" : "idle");
+            setRefillStatus(areaSignal?.refillActive ? "requested" : "idle");
           }
         }
       } catch (err) {
@@ -140,13 +137,10 @@ export default function StaffPortalPage() {
             setEmergencyActive(state.emergencyActive);
 
             const currentAreaId = areaIdRef.current || myStaff?.assignedAreaId;
-            if (currentAreaId && state.areaSignals && state.areaSignals[currentAreaId]) {
-              const areaSignal = state.areaSignals[currentAreaId];
-              setHelpStatus(areaSignal.helpActive ? "requested" : "idle");
-              setRefillStatus(areaSignal.refillActive ? "requested" : "idle");
-            } else {
-              setHelpStatus("idle");
-              setRefillStatus("idle");
+            if (currentAreaId) {
+              const areaSignal = state.areaSignals ? state.areaSignals[currentAreaId] : null;
+              setHelpStatus(areaSignal?.helpActive ? "requested" : "idle");
+              setRefillStatus(areaSignal?.refillActive ? "requested" : "idle");
             }
           }
         } catch (e) {

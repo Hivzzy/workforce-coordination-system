@@ -72,7 +72,7 @@ public class SystemStateServiceImpl implements SystemStateService {
     private void saveAreaSignalsMap(Map<String, Map<String, Object>> areaSignals) {
         try {
             String json = objectMapper.writeValueAsString(areaSignals);
-            systemStateRepository.save(new SystemStateEntity("area_signals_json", json));
+            systemStateRepository.saveAndFlush(new SystemStateEntity("area_signals_json", json));
         } catch (Exception e) {
             log.error("Failed to save area_signals_json:", e);
         }
@@ -82,7 +82,7 @@ public class SystemStateServiceImpl implements SystemStateService {
     public Map<String, Object> updateSystemState(Map<String, String> body) {
         if (body.containsKey("emergencyActive")) {
             boolean active = parseBool(body.get("emergencyActive"));
-            systemStateRepository.save(new SystemStateEntity("emergency_active", String.valueOf(active)));
+            systemStateRepository.saveAndFlush(new SystemStateEntity("emergency_active", String.valueOf(active)));
             webSocketPublisherService.sendEmergencyAlert(active, active ? "🚨 DARURAT GATHERING AREA ACTIVE!" : "Emergency Call Cleared");
         }
 
@@ -123,12 +123,12 @@ public class SystemStateServiceImpl implements SystemStateService {
             // Legacy single-string trigger fallback
             if (body.containsKey("helpStatus")) {
                 String status = body.get("helpStatus");
-                systemStateRepository.save(new SystemStateEntity("help_status", status));
+                systemStateRepository.saveAndFlush(new SystemStateEntity("help_status", status));
                 webSocketPublisherService.sendSignal("HELP", status);
             }
             if (body.containsKey("refillStatus")) {
                 String status = body.get("refillStatus");
-                systemStateRepository.save(new SystemStateEntity("refill_status", status));
+                systemStateRepository.saveAndFlush(new SystemStateEntity("refill_status", status));
                 webSocketPublisherService.sendSignal("REFILL", status);
             }
         }
