@@ -10,13 +10,41 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Workforce Coordination System",
-  description: "Enterprise Field Workforce Coordination & Emergency Alert System",
+  title: {
+    default: "Kembang Tasik — Workforce Coordination System",
+    template: "%s | Kembang Tasik",
+  },
+  description: "Sistem Koordinasi Lapangan Real-Time, Manajemen Tugas Staf, Permintaan Isi Ulang Logistik & Alarm Emergensi — Kembang Tasik Wedding & Catering Organizer",
+  keywords: [
+    "Kembang Tasik",
+    "Workforce Coordination System",
+    "Manajemen Staf Lapangan",
+    "Real-time Emergency Alarm",
+    "Event Organizer System",
+    "Catering Workforce Management",
+  ],
+  authors: [{ name: "Kembang Tasik Development Team" }],
   manifest: "/manifest.json",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/favicon.ico",
+  },
+  openGraph: {
+    title: "Kembang Tasik — Workforce Coordination System",
+    description: "Pusat Koordinasi Operasional Lapangan & Manajemen Staf Real-Time Kembang Tasik",
+    type: "website",
+    locale: "id_ID",
+    siteName: "Kembang Tasik Workforce System",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Kembang Tasik — Workforce Coordination System",
+    description: "Pusat Koordinasi Operasional Lapangan & Manajemen Staf Real-Time Kembang Tasik",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Workforce System",
+    title: "Kembang Tasik System",
   },
 };
 
@@ -34,7 +62,7 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="id"
       className={`${poppins.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">

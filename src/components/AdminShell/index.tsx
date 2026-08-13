@@ -132,13 +132,13 @@ export default function AdminShell({ children }: AdminShellProps) {
           <AppTypography
             sx={{
               color: "#ffffff",
-              fontSize: "1.35rem",
+              fontSize: "1.1rem",
               fontWeight: 800,
               fontFamily: "var(--font-poppins)",
               lineHeight: 1,
             }}
           >
-            W
+            KT
           </AppTypography>
         </Box>
 
@@ -153,13 +153,13 @@ export default function AdminShell({ children }: AdminShellProps) {
               letterSpacing: "-0.02em",
             }}
           >
-            Workforce
+            Kembang Tasik
           </AppTypography>
           <AppTypography
             preset="helperText"
             sx={{ color: "#FBC02D", fontSize: "0.75rem", fontWeight: 700, mt: 0.25 }}
           >
-            Admin Portal
+            Workforce Portal
           </AppTypography>
           <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.5 }}>
             <Box sx={{ width: 8, height: 8, borderRadius: "50%", backgroundColor: "#10B981" }} />
