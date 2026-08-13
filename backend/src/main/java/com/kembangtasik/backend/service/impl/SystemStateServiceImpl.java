@@ -6,12 +6,14 @@ import com.kembangtasik.backend.model.SystemStateEntity;
 import com.kembangtasik.backend.repository.SystemStateRepository;
 import com.kembangtasik.backend.service.SystemStateService;
 import com.kembangtasik.backend.service.WebSocketPublisherService;
+import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @Transactional
@@ -22,10 +24,32 @@ public class SystemStateServiceImpl implements SystemStateService {
     private final WebSocketPublisherService webSocketPublisherService;
     private final ObjectMapper objectMapper;
 
+    // ⚡ Thread-safe In-Memory Signal Cache to eliminate DB cache latency & stale reads
+    private final Map<String, Map<String, Object>> areaSignalsCache = new ConcurrentHashMap<>();
+
     public SystemStateServiceImpl(SystemStateRepository systemStateRepository, WebSocketPublisherService webSocketPublisherService) {
         this.systemStateRepository = systemStateRepository;
         this.webSocketPublisherService = webSocketPublisherService;
         this.objectMapper = new ObjectMapper();
+    }
+
+    @PostConstruct
+    public void initCache() {
+        try {
+            Optional<SystemStateEntity> signalsOpt = systemStateRepository.findById("area_signals_json");
+            if (signalsOpt.isPresent() && signalsOpt.get().getValue() != null && !signalsOpt.get().getValue().isBlank()) {
+                Map<String, Map<String, Object>> loaded = objectMapper.readValue(
+                        signalsOpt.get().getValue(),
+                        new TypeReference<Map<String, Map<String, Object>>>() {}
+                );
+                if (loaded != null) {
+                    areaSignalsCache.putAll(loaded);
+                    log.info("Initialized areaSignalsCache with {} areas from PostgreSQL DB.", areaSignalsCache.size());
+                }
+            }
+        } catch (Exception e) {
+            log.error("Failed to load initial areaSignalsCache from DB:", e);
+        }
     }
 
     private boolean parseBool(Object val) {
@@ -41,40 +65,28 @@ public class SystemStateServiceImpl implements SystemStateService {
         Optional<SystemStateEntity> emergencyOpt = systemStateRepository.findById("emergency_active");
         boolean emergencyActive = emergencyOpt.map(e -> parseBool(e.getValue())).orElse(false);
 
-        // Fetch per-area active signals JSON map
-        Map<String, Map<String, Object>> areaSignals = getAreaSignalsMap();
+        // Return a copy of the thread-safe in-memory signals cache
+        Map<String, Map<String, Object>> currentSignals = new HashMap<>(areaSignalsCache);
 
         result.put("emergencyActive", emergencyActive);
-        result.put("areaSignals", areaSignals);
+        result.put("areaSignals", currentSignals);
 
         // Legacy compatibility fields
-        boolean anyHelp = areaSignals.values().stream().anyMatch(s -> parseBool(s.get("helpActive")));
-        boolean anyRefill = areaSignals.values().stream().anyMatch(s -> parseBool(s.get("refillActive")));
+        boolean anyHelp = currentSignals.values().stream().anyMatch(s -> parseBool(s.get("helpActive")));
+        boolean anyRefill = currentSignals.values().stream().anyMatch(s -> parseBool(s.get("refillActive")));
         result.put("helpStatus", anyHelp ? "requested" : "idle");
         result.put("refillStatus", anyRefill ? "requested" : "idle");
 
         return result;
     }
 
-    @SuppressWarnings("unchecked")
-    private Map<String, Map<String, Object>> getAreaSignalsMap() {
-        Optional<SystemStateEntity> signalsOpt = systemStateRepository.findById("area_signals_json");
-        if (signalsOpt.isPresent() && signalsOpt.get().getValue() != null && !signalsOpt.get().getValue().isBlank()) {
-            try {
-                return objectMapper.readValue(signalsOpt.get().getValue(), new TypeReference<Map<String, Map<String, Object>>>() {});
-            } catch (Exception e) {
-                log.error("Failed to parse area_signals_json:", e);
-            }
-        }
-        return new HashMap<>();
-    }
-
-    private void saveAreaSignalsMap(Map<String, Map<String, Object>> areaSignals) {
+    private void persistAreaSignalsCache() {
         try {
-            String json = objectMapper.writeValueAsString(areaSignals);
+            String json = objectMapper.writeValueAsString(areaSignalsCache);
             systemStateRepository.saveAndFlush(new SystemStateEntity("area_signals_json", json));
+            log.info("Persisted areaSignalsCache ({} areas) to PostgreSQL DB.", areaSignalsCache.size());
         } catch (Exception e) {
-            log.error("Failed to save area_signals_json:", e);
+            log.error("Failed to persist areaSignalsCache to DB:", e);
         }
     }
 
@@ -90,9 +102,8 @@ public class SystemStateServiceImpl implements SystemStateService {
         if (body.containsKey("areaId")) {
             String areaId = body.get("areaId");
             String areaName = body.getOrDefault("areaName", "Area " + areaId);
-            Map<String, Map<String, Object>> areaSignals = getAreaSignalsMap();
 
-            Map<String, Object> signal = areaSignals.getOrDefault(areaId, new HashMap<>());
+            Map<String, Object> signal = areaSignalsCache.getOrDefault(areaId, new ConcurrentHashMap<>());
             signal.put("areaId", areaId);
             signal.put("areaName", areaName);
 
@@ -112,12 +123,12 @@ public class SystemStateServiceImpl implements SystemStateService {
             boolean help = parseBool(signal.get("helpActive"));
             boolean refill = parseBool(signal.get("refillActive"));
             if (!help && !refill) {
-                areaSignals.remove(areaId);
+                areaSignalsCache.remove(areaId);
             } else {
-                areaSignals.put(areaId, signal);
+                areaSignalsCache.put(areaId, signal);
             }
 
-            saveAreaSignalsMap(areaSignals);
+            persistAreaSignalsCache();
             webSocketPublisherService.sendSignal("AREA_SIGNAL_UPDATE", areaId);
         } else {
             // Legacy single-string trigger fallback
