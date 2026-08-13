@@ -130,7 +130,7 @@ sequenceDiagram
 
 ### 4. Tabel `areas` (Manajemen Layout Zona & Identitas Area)
 - **Tabel `areas`**: `id` (PK), `name` (Nama Area, misal: *VIP Lounge*, *Gathering Area*, *Buffet Zone*), `type` (Tipe/Kategori Area), `color` (Kode Warna Aksesibilitas Visual UI).
-- **Catatan Arsitektur (Simplifikasi Layout Zone)**: Atribut koordinat kanvas 2D lama (`x`, `y`, `w`, `h`) telah disederhanakan menjadi skema zona area terstruktur (`id`, `name`, `type`, `color`). Hal ini dilakukan untuk mempermudah responsivitas tampilan di layar smartphone staf (*Mobile-First UI*) serta mempercepat pemetaan staf ke zona penugasan secara dinamis.
+- **Catatan Arsitektur (Area Zone Builder)**: Fitur kanvas 2D piksel lama (`x`, `y`, `w`, `h`) telah **sepenuhnya digantikan** oleh sistem *Responsive Area Zone Builder Card Grid* (`id`, `name`, `type`, `color`). Hal ini dilakukan untuk mempermudah responsivitas tampilan di layar smartphone staf (*Mobile-First UI*) serta mempercepat pemetaan staf ke zona penugasan secara dinamis.
 
 ---
 
