@@ -10,7 +10,7 @@ public class SystemStateEntity {
     @Column(name = "state_key")
     private String key;
 
-    @Column(name = "state_value")
+    @Column(name = "state_value", columnDefinition = "TEXT")
     private String value;
 
     public SystemStateEntity() {}
