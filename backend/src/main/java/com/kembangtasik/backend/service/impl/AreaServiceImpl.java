@@ -38,7 +38,6 @@ public class AreaServiceImpl implements AreaService {
         }
         AreaEntity area = existingOpt.get();
         if (areaDetails.getName() != null) area.setName(areaDetails.getName());
-        if (areaDetails.getType() != null) area.setType(areaDetails.getType());
         return areaRepository.save(area);
     }
 
