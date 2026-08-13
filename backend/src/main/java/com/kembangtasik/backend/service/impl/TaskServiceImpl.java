@@ -1,6 +1,11 @@
 package com.kembangtasik.backend.service.impl;
 
+import com.kembangtasik.backend.dto.TaskDto;
+import com.kembangtasik.backend.model.AreaEntity;
+import com.kembangtasik.backend.model.StaffEntity;
 import com.kembangtasik.backend.model.TaskEntity;
+import com.kembangtasik.backend.repository.AreaRepository;
+import com.kembangtasik.backend.repository.StaffRepository;
 import com.kembangtasik.backend.repository.TaskRepository;
 import com.kembangtasik.backend.service.TaskService;
 import com.kembangtasik.backend.service.WebSocketPublisherService;
@@ -10,28 +15,66 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class TaskServiceImpl implements TaskService {
 
     private final TaskRepository taskRepository;
+    private final StaffRepository staffRepository;
+    private final AreaRepository areaRepository;
     private final WebSocketPublisherService webSocketPublisherService;
 
-    public TaskServiceImpl(TaskRepository taskRepository, WebSocketPublisherService webSocketPublisherService) {
+    public TaskServiceImpl(TaskRepository taskRepository, StaffRepository staffRepository, AreaRepository areaRepository, WebSocketPublisherService webSocketPublisherService) {
         this.taskRepository = taskRepository;
+        this.staffRepository = staffRepository;
+        this.areaRepository = areaRepository;
         this.webSocketPublisherService = webSocketPublisherService;
     }
 
-    @Override
-    public List<TaskEntity> getTasks(String staffId) {
-        if (staffId != null && !staffId.isBlank()) {
-            return taskRepository.findByAssignedStaffId(staffId);
+    private TaskDto mapToDto(TaskEntity entity) {
+        if (entity == null) return null;
+
+        String staffName = null;
+        if (entity.getAssignedStaffId() != null && !entity.getAssignedStaffId().isBlank()) {
+            staffName = staffRepository.findById(entity.getAssignedStaffId())
+                    .map(StaffEntity::getName)
+                    .orElse(null);
         }
-        return taskRepository.findAll();
+
+        String areaName = null;
+        if (entity.getAssignedAreaId() != null && !entity.getAssignedAreaId().isBlank()) {
+            areaName = areaRepository.findById(entity.getAssignedAreaId())
+                    .map(AreaEntity::getName)
+                    .orElse(null);
+        }
+
+        return TaskDto.builder()
+                .id(entity.getId())
+                .title(entity.getTitle())
+                .description(entity.getDescription())
+                .assignedStaffId(entity.getAssignedStaffId())
+                .staffName(staffName)
+                .assignedAreaId(entity.getAssignedAreaId())
+                .areaName(areaName)
+                .status(entity.getStatus())
+                .createdAt(entity.getCreatedAt())
+                .build();
     }
 
     @Override
-    public TaskEntity createTask(TaskEntity task) {
+    public List<TaskDto> getTasks(String staffId) {
+        List<TaskEntity> entities;
+        if (staffId != null && !staffId.isBlank()) {
+            entities = taskRepository.findByAssignedStaffId(staffId);
+        } else {
+            entities = taskRepository.findAll();
+        }
+        return entities.stream().map(this::mapToDto).collect(Collectors.toList());
+    }
+
+    @Override
+    public TaskDto createTask(TaskEntity task) {
         if (task.getId() == null || task.getId().isBlank()) {
             task.setId("task-" + System.currentTimeMillis());
         }
@@ -42,16 +85,17 @@ public class TaskServiceImpl implements TaskService {
             task.setStatus("pending");
         }
         TaskEntity saved = taskRepository.save(task);
+        TaskDto dto = mapToDto(saved);
 
         // ⚡ Real-Time WebSocket STOMP Broadcast to /topic/tasks (< 50ms)
-        webSocketPublisherService.sendTaskUpdate(saved);
-        webSocketPublisherService.sendOperationsLog("📋 TASK CREATED: " + saved.getTitle() + " assigned to staff " + (saved.getAssignedStaffId() != null ? saved.getAssignedStaffId() : "Unassigned"));
+        webSocketPublisherService.sendTaskUpdate(dto);
+        webSocketPublisherService.sendOperationsLog("📋 TASK CREATED: " + saved.getTitle() + " assigned to staff " + (dto.getStaffName() != null ? dto.getStaffName() : "Unassigned"));
 
-        return saved;
+        return dto;
     }
 
     @Override
-    public TaskEntity updateTask(String id, TaskEntity updated) {
+    public TaskDto updateTask(String id, TaskEntity updated) {
         Optional<TaskEntity> existingOpt = taskRepository.findById(id);
         if (existingOpt.isEmpty()) {
             return null;
@@ -64,12 +108,13 @@ public class TaskServiceImpl implements TaskService {
         if (updated.getStatus() != null) existing.setStatus(updated.getStatus());
 
         TaskEntity saved = taskRepository.save(existing);
+        TaskDto dto = mapToDto(saved);
 
         // ⚡ Real-Time WebSocket STOMP Broadcast to /topic/tasks (< 50ms)
-        webSocketPublisherService.sendTaskUpdate(saved);
+        webSocketPublisherService.sendTaskUpdate(dto);
         webSocketPublisherService.sendOperationsLog("📋 TASK UPDATED: " + saved.getTitle() + " status is now " + saved.getStatus());
 
-        return saved;
+        return dto;
     }
 
     @Override
