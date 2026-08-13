@@ -31,10 +31,12 @@ import java.util.List;
 public class SecurityConfig {
 
     private final SessionAuthenticationFilter sessionAuthenticationFilter;
+    private final com.kembangtasik.backend.security.RateLimitingFilter rateLimitingFilter;
     private final ObjectMapper objectMapper;
 
-    public SecurityConfig(SessionAuthenticationFilter sessionAuthenticationFilter, ObjectMapper objectMapper) {
+    public SecurityConfig(SessionAuthenticationFilter sessionAuthenticationFilter, com.kembangtasik.backend.security.RateLimitingFilter rateLimitingFilter, ObjectMapper objectMapper) {
         this.sessionAuthenticationFilter = sessionAuthenticationFilter;
+        this.rateLimitingFilter = rateLimitingFilter;
         this.objectMapper = objectMapper;
     }
 
@@ -60,6 +62,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/**").permitAll()
                 .anyRequest().permitAll()
             )
+            .addFilterBefore(rateLimitingFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(sessionAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
