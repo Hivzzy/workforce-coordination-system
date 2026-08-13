@@ -117,30 +117,18 @@ export default function AdminShell({ children }: AdminShellProps) {
         }}
       >
         <Box
+          component="img"
+          src="/logo.png"
+          alt="Kembang Tasik Logo"
           sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
             width: 44,
             height: 44,
-            borderRadius: "50%",
-            backgroundColor: "#FBC02D",
-            boxShadow: "0 4px 10px rgba(251, 192, 45, 0.35)",
+            borderRadius: "12px",
+            boxShadow: "0 4px 12px rgba(251, 192, 45, 0.35)",
             flexShrink: 0,
+            objectFit: "cover",
           }}
-        >
-          <AppTypography
-            sx={{
-              color: "#ffffff",
-              fontSize: "1.1rem",
-              fontWeight: 800,
-              fontFamily: "var(--font-poppins)",
-              lineHeight: 1,
-            }}
-          >
-            KT
-          </AppTypography>
-        </Box>
+        />
 
         <Box>
           <AppTypography

@@ -26,8 +26,8 @@ export const metadata: Metadata = {
   authors: [{ name: "Kembang Tasik Development Team" }],
   manifest: "/manifest.json",
   icons: {
-    icon: "/favicon.ico",
-    apple: "/favicon.ico",
+    icon: "/logo.png",
+    apple: "/logo.png",
   },
   openGraph: {
     title: "Kembang Tasik — Workforce Coordination System",
